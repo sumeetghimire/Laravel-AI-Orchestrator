@@ -206,6 +206,13 @@ class Response
         $provider = $this->getProvider();
         $messages = $this->prepareMessages();
 
+        // Convert string prompt to messages array for streaming
+        if (is_string($messages)) {
+            $messages = [
+                ['role' => 'user', 'content' => $messages]
+            ];
+        }
+
         try {
             $provider->streamChat($messages, $callback, $this->options);
         } catch (\Exception $e) {
