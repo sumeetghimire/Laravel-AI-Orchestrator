@@ -12,8 +12,6 @@ This guide covers setting up and using self-hosted/local AI models with Laravel 
 - [Custom Self-Hosted Providers](#custom-self-hosted-providers)
 - [Troubleshooting](#troubleshooting)
 
----
-
 ## Why Self-Hosted Models?
 
 ### Benefits
@@ -32,8 +30,6 @@ This guide covers setting up and using self-hosted/local AI models with Laravel 
 - **High Volume** — Process thousands of requests without cost
 - **Offline Applications** — Edge devices, air-gapped networks
 - **Custom Models** — Fine-tuned models for specific domains
-
----
 
 ## Ollama Setup
 
@@ -102,8 +98,6 @@ ollama list
 | `codellama` | ~3.8GB | Code generation, debugging | ⭐⭐⭐⭐⭐ |
 | `neural-chat` | ~4.1GB | Conversational AI | ⭐⭐⭐⭐ |
 
----
-
 ## Configuration
 
 ### Environment Variables
@@ -134,8 +128,6 @@ The `config/ai.php` file already includes Ollama configuration:
     'model' => env('OLLAMA_MODEL', 'llama3'),
 ],
 ```
-
----
 
 ## Usage Examples
 
@@ -213,8 +205,6 @@ function aiResponse($prompt) {
         ->toText();
 }
 ```
-
----
 
 ## Deployment Options
 
@@ -294,8 +284,6 @@ spec:
           requests:
             nvidia.com/gpu: 1
 ```
-
----
 
 ## Custom Self-Hosted Providers
 
@@ -389,8 +377,6 @@ Then add to `config/ai.php`:
 ],
 ```
 
----
-
 ## Troubleshooting
 
 ### Connection Issues
@@ -430,15 +416,11 @@ Then add to `config/ai.php`:
 4. **Implement fallback** to cloud providers
 5. **Cache responses** for common queries
 
----
-
 ## Resources
 
 - [Ollama Documentation](https://github.com/ollama/ollama)
 - [Ollama Model Library](https://ollama.ai/library)
 - [Laravel AI Orchestrator GitHub](https://github.com/sumeetghimire/Laravel-AI-Orchestrator)
-
----
 
 ## Support
 

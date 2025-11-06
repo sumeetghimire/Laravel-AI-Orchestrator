@@ -2,7 +2,7 @@
 
 ## Security by Default
 
-The dashboard is **disabled by default** for security reasons. You must explicitly enable it in your `.env` file.
+The dashboard is disabled by default for security reasons. You must explicitly enable it in your `.env` file.
 
 ## How to Enable Dashboard
 

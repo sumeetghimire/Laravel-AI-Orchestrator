@@ -25,9 +25,7 @@ It handles provider differences, caching, cost tracking, fallback logic, and str
 - Extendable driver system — add your own AI provider  
 - User attribution + quota tracking  
 - Zero-cost local models — perfect for development and privacy-sensitive applications  
-- Built-in logging, events, and monitoring hooks  
-
----
+- Built-in logging, events, and monitoring hooks
 
 ## Installation
 
@@ -47,8 +45,6 @@ Publish migrations:
 php artisan vendor:publish --tag="ai-migrations"
 php artisan migrate
 ```
-
----
 
 ## Configuration (`config/ai.php`)
 
@@ -90,8 +86,6 @@ OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=llama3
 ```
 
----
-
 ## Basic Usage
 
 ### Prompt Completion
@@ -127,8 +121,6 @@ $response = Ai::prompt("Quick response")
     ->fallback('openai:gpt-4o')
     ->toText();
 ```
-
----
 
 ## Structured Output (Typed Responses)
 
@@ -186,8 +178,6 @@ $validated = Ai::prompt("Generate product data")
 
 Invalid JSON? The orchestrator retries with a correction prompt automatically.
 
----
-
 ## Caching
 
 ```php
@@ -195,8 +185,6 @@ $response = Ai::prompt("Summarize Laravel's request lifecycle")
     ->cache(3600)
     ->toText();
 ```
-
----
 
 ## Streaming Responses
 
@@ -206,8 +194,6 @@ Ai::prompt("Generate step-by-step Laravel CI/CD guide")
         echo $chunk;
     });
 ```
-
----
 
 ## Multi-Modal Support
 
@@ -293,8 +279,6 @@ AI_AUDIO_USER_SUBFOLDER=true      # Organize by user ID
 AI_AUDIO_AUTO_CLEANUP=false       # Auto cleanup old files
 AI_AUDIO_CLEANUP_DAYS=30          # Cleanup after X days
 ```
-
----
 
 ## Self-Hosted & Local Model Support
 
@@ -466,8 +450,6 @@ services:
       - ollama-data:/root/.ollama
 ```
 
----
-
 ## Token & Cost Tracking
 
 ```php
@@ -484,8 +466,6 @@ $totalTokens = Ai::usage()
     ->user(auth()->id())
     ->sum('tokens');
 ```
-
----
 
 ## Database Schema
 
@@ -518,11 +498,9 @@ Ai::prompt("Analyze user logs")->queue()->dispatchLater();
 
 // API Endpoint
 Route::post('/ai', fn(Request $req) =>
-    Ai::prompt($req->input('prompt'))->json()
+    Ai::prompt($req->input('prompt'))    ->json()
 );
 ```
-
----
 
 ## Creating Custom Providers
 
@@ -536,8 +514,6 @@ class CustomProvider implements AiProviderInterface
     // Implement required methods
 }
 ```
-
----
 
 ## Dashboard
 
@@ -594,8 +570,6 @@ AI_DASHBOARD_MIDDLEWARE=auth,admin.check
 
 See `DASHBOARD_SECURITY.md` for detailed security configuration.
 
----
-
 ## Self-Hosted Models
 
 Laravel AI Orchestrator supports self-hosted and local AI models for zero-cost, privacy-focused AI operations.
@@ -621,8 +595,6 @@ $response = Ai::prompt("Explain Laravel")
 
 See **[SELF_HOSTED_GUIDE.md](SELF_HOSTED_GUIDE.md)** for complete setup instructions, deployment options, and troubleshooting.
 
----
-
 ## Future Roadmap
 
 - [ ] Auto model selector (route task to best model)  
@@ -630,16 +602,12 @@ See **[SELF_HOSTED_GUIDE.md](SELF_HOSTED_GUIDE.md)** for complete setup instruct
 - [ ] Native Laravel Nova & Filament integration  
 - [ ] Plugin system for tools (browser, filesystem)  
 - [ ] Context-aware memory management  
-- [ ] Typed DTO generation from structured output  
-
----
+- [ ] Typed DTO generation from structured output
 
 ## Contributing
 
 Pull requests are welcome!  
 If you want to add a new provider, extend the `AiProvider` interface and submit a PR.
-
----
 
 ## License
 
