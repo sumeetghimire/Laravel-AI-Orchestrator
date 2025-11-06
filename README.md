@@ -14,6 +14,7 @@ It handles provider differences, caching, cost tracking, fallback logic, and str
 ### Highlights
 
 - Plug & play support for OpenAI, Anthropic, Gemini, Ollama, HuggingFace, Replicate  
+- Self-hosted/local model support — run AI models on your own infrastructure  
 - Fallback & chaining — automatically retry or switch models  
 - Smart caching to reduce token usage & cost  
 - Token + cost tracking per user & provider  
@@ -23,7 +24,7 @@ It handles provider differences, caching, cost tracking, fallback logic, and str
 - Structured Output (JSON / typed responses)  
 - Extendable driver system — add your own AI provider  
 - User attribution + quota tracking  
-- Optional local/offline model support  
+- Zero-cost local models — perfect for development and privacy-sensitive applications  
 - Built-in logging, events, and monitoring hooks  
 
 ---
@@ -78,10 +79,15 @@ return [
 Don't forget to add your API keys to your `.env` file:
 
 ```env
+# Cloud providers
 AI_DRIVER=openai
 OPENAI_API_KEY=your-api-key-here
 ANTHROPIC_API_KEY=your-api-key-here
 GEMINI_API_KEY=your-api-key-here
+
+# Self-hosted (Ollama)
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3
 ```
 
 ---
@@ -109,7 +115,14 @@ $response = Ai::chat([
 ### Fallback Chain
 
 ```php
+// Try cloud first, fallback to local
 $response = Ai::prompt("Explain quantum computing")
+    ->using('openai:gpt-4o')
+    ->fallback('ollama:llama3')
+    ->toText();
+
+// Or local first, cloud fallback
+$response = Ai::prompt("Quick response")
     ->using('ollama:llama3')
     ->fallback('openai:gpt-4o')
     ->toText();
@@ -254,6 +267,178 @@ $audioBase64 = Ai::speak("Hello world")
 
 ---
 
+## Self-Hosted & Local Model Support
+
+**Laravel AI Orchestrator** fully supports self-hosted and local AI models, giving you complete control over your AI infrastructure, privacy, and costs.
+
+### Why Use Self-Hosted Models?
+
+- **Zero API costs** — Run models locally without per-request fees
+- **Data privacy** — Keep sensitive data on your infrastructure
+- **Offline capability** — Work without internet connectivity
+- **Custom models** — Use fine-tuned or specialized models
+- **Development flexibility** — Test without API rate limits
+
+### Ollama (Recommended for Local Models)
+
+[Ollama](https://ollama.ai) is the easiest way to run large language models locally. It provides a simple API server that runs on your machine or server.
+
+#### Installation
+
+```bash
+# Install Ollama (macOS/Linux)
+curl -fsSL https://ollama.ai/install.sh | sh
+
+# Or download from https://ollama.ai/download
+```
+
+#### Setup
+
+1. **Start Ollama server:**
+   ```bash
+   ollama serve
+   ```
+
+2. **Pull a model:**
+   ```bash
+   ollama pull llama3
+   ollama pull mistral
+   ollama pull codellama
+   ```
+
+3. **Configure in Laravel:**
+
+   Add to your `.env`:
+   ```env
+   AI_DRIVER=ollama
+   OLLAMA_BASE_URL=http://localhost:11434
+   OLLAMA_MODEL=llama3
+   ```
+
+   Or use remote Ollama server:
+   ```env
+   OLLAMA_BASE_URL=http://your-server:11434
+   ```
+
+#### Usage
+
+```php
+// Use Ollama as default
+$response = Ai::prompt("Explain Laravel's service container")
+    ->using('ollama')
+    ->toText();
+
+// Or specify model inline
+$response = Ai::prompt("Write Python code")
+    ->using('ollama:codellama')
+    ->toText();
+
+// Use local model as fallback
+$response = Ai::prompt("Complex task")
+    ->using('openai')           // Try cloud first
+    ->fallback('ollama:llama3')  // Fallback to local if cloud fails
+    ->toText();
+```
+
+#### Supported Ollama Models
+
+- `llama3` / `llama3:8b` / `llama3:70b`
+- `mistral` / `mistral:7b`
+- `codellama` / `codellama:13b`
+- `neural-chat` / `starling-lm`
+- And [100+ more models](https://ollama.ai/library)
+
+### Custom Self-Hosted Models
+
+You can create a custom provider for any self-hosted model that exposes an API:
+
+```php
+use Sumeetghimire\AiOrchestrator\Drivers\AiProviderInterface;
+
+class CustomSelfHostedProvider implements AiProviderInterface
+{
+    protected $baseUrl;
+    
+    public function __construct(array $config)
+    {
+        $this->baseUrl = $config['base_url'] ?? 'http://localhost:8080';
+        // Initialize your HTTP client
+    }
+    
+    // Implement interface methods...
+}
+```
+
+Then register it in `config/ai.php`:
+
+```php
+'providers' => [
+    'custom-local' => [
+        'driver' => 'custom-self-hosted',
+        'base_url' => env('CUSTOM_MODEL_URL', 'http://localhost:8080'),
+        'model' => env('CUSTOM_MODEL', 'my-custom-model'),
+    ],
+],
+```
+
+### Hybrid Setup (Cloud + Local)
+
+Perfect for production: use cloud models for heavy tasks, local models for development and fallbacks.
+
+```php
+// Production: Use cloud with local fallback
+$response = Ai::prompt("User query")
+    ->using('openai')
+    ->fallback('ollama:llama3')
+    ->toText();
+
+// Development: Use local only
+$response = Ai::prompt("Development test")
+    ->using('ollama')
+    ->toText();
+```
+
+### Cost Comparison
+
+| Provider | Cost per Request | Notes |
+|----------|-----------------|-------|
+| **Ollama (Local)** | **$0.00** | Free, runs on your hardware |
+| OpenAI GPT-4 | ~$0.03-0.10 | Pay per token |
+| Anthropic Claude | ~$0.015-0.075 | Pay per token |
+| Gemini | ~$0.00125-0.005 | Pay per token |
+
+**Local models are free but require hardware.** Great for development, testing, and privacy-sensitive applications.
+
+### Deployment Options
+
+1. **Same Server** — Run Ollama on the same machine as Laravel
+2. **Dedicated Server** — Run Ollama on a separate GPU server
+3. **Docker Container** — Deploy Ollama in Docker for easy scaling
+4. **Kubernetes** — Orchestrate multiple local model instances
+
+### Example: Docker Setup
+
+```dockerfile
+# Dockerfile for Ollama server
+FROM ollama/ollama:latest
+
+# Expose Ollama API
+EXPOSE 11434
+```
+
+```yaml
+# docker-compose.yml
+services:
+  ollama:
+    image: ollama/ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+```
+
+---
+
 ## Token & Cost Tracking
 
 ```php
@@ -371,6 +556,33 @@ AI_DASHBOARD_MIDDLEWARE=auth,admin.check
 - User-specific analytics
 
 See `DASHBOARD_SECURITY.md` for detailed security configuration.
+
+---
+
+## Self-Hosted Models
+
+Laravel AI Orchestrator supports self-hosted and local AI models for zero-cost, privacy-focused AI operations.
+
+**Quick Start:**
+```bash
+# Install Ollama
+curl -fsSL https://ollama.ai/install.sh | sh
+
+# Pull a model
+ollama pull llama3
+
+# Configure in Laravel
+# Set OLLAMA_BASE_URL=http://localhost:11434 in .env
+```
+
+**Usage:**
+```php
+$response = Ai::prompt("Explain Laravel")
+    ->using('ollama:llama3')
+    ->toText();
+```
+
+See **[SELF_HOSTED_GUIDE.md](SELF_HOSTED_GUIDE.md)** for complete setup instructions, deployment options, and troubleshooting.
 
 ---
 
