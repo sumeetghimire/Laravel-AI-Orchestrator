@@ -1,29 +1,33 @@
-# 🚀 Laravel AI Orchestrator
+<div align="center">
+  <img src="https://raw.githubusercontent.com/sumeetghimire/Laravel-AI-Orchestrator/main/logo.png" alt="Laravel AI Orchestrator" width="200">
+  
+  # Laravel AI Orchestrator
+  
+  > A unified, driver-based AI orchestration layer for Laravel — supporting OpenAI, Anthropic, Gemini, Ollama, HuggingFace, and more.
+</div>
 
-> A unified, driver-based AI orchestration layer for Laravel — supporting OpenAI, Anthropic, Gemini, Ollama, HuggingFace, and more.
-
-## 🧠 Overview
+## Overview
 
 **Laravel AI Orchestrator** lets you connect, manage, and switch between multiple AI models with a single elegant API.  
 It handles provider differences, caching, cost tracking, fallback logic, and structured output — so you can focus on building intelligent Laravel apps faster.
 
-### ✨ Highlights
+### Highlights
 
-- 🧩 Plug & play support for OpenAI, Anthropic, Gemini, Ollama, HuggingFace, Replicate  
-- 🔁 Fallback & chaining — automatically retry or switch models  
-- 💾 Smart caching to reduce token usage & cost  
-- 📊 Token + cost tracking per user & provider  
-- ⚡ Streaming support for chat responses  
-- 🧠 Unified API for chat, completion, embedding, and image generation  
-- 🧱 Structured Output (JSON / typed responses)  
-- 🔌 Extendable driver system — add your own AI provider  
-- 🧍 User attribution + quota tracking  
-- 🔒 Optional local/offline model support  
-- 📜 Built-in logging, events, and monitoring hooks  
+- Plug & play support for OpenAI, Anthropic, Gemini, Ollama, HuggingFace, Replicate  
+- Fallback & chaining — automatically retry or switch models  
+- Smart caching to reduce token usage & cost  
+- Token + cost tracking per user & provider  
+- Streaming support for chat responses  
+- Unified API for chat, completion, embedding, and image generation  
+- Structured Output (JSON / typed responses)  
+- Extendable driver system — add your own AI provider  
+- User attribution + quota tracking  
+- Optional local/offline model support  
+- Built-in logging, events, and monitoring hooks  
 
 ---
 
-## 📦 Installation
+## Installation
 
 ```bash
 composer require sumeetghimire/laravel-ai-orchestrator
@@ -44,7 +48,7 @@ php artisan migrate
 
 ---
 
-## ⚙️ Configuration (`config/ai.php`)
+## Configuration (`config/ai.php`)
 
 The package comes with a default configuration file. You can customize it by publishing the config file.
 
@@ -81,9 +85,9 @@ GEMINI_API_KEY=your-api-key-here
 
 ---
 
-## 🧩 Basic Usage
+## Basic Usage
 
-### 🔹 Prompt Completion
+### Prompt Completion
 
 ```php
 use Sumeetghimire\AiOrchestrator\Facades\Ai;
@@ -92,7 +96,7 @@ $response = Ai::prompt("Write a tweet about Laravel 12")->toText();
 echo $response; 
 ```
 
-### 🔹 Chat Conversation
+### Chat Conversation
 
 ```php
 $response = Ai::chat([
@@ -101,7 +105,7 @@ $response = Ai::chat([
 ])->using('anthropic')->toText();
 ```
 
-### 🔹 Fallback Chain
+### Fallback Chain
 
 ```php
 $response = Ai::prompt("Explain quantum computing")
@@ -112,13 +116,13 @@ $response = Ai::prompt("Explain quantum computing")
 
 ---
 
-## 🧱 Structured Output (Typed Responses)
+## Structured Output (Typed Responses)
 
-### 🧠 Concept
+### Concept
 
 Get **structured JSON or typed data** instead of free-form text. Useful for extraction, automation, or chaining.
 
-### 🔹 Example: Schema Output
+### Example: Schema Output
 
 ```php
 $article = Ai::prompt("Summarize this blog post", [
@@ -139,7 +143,7 @@ $article = Ai::prompt("Summarize this blog post", [
 ]
 ```
 
-### 🔹 JSON Enforcement Mode
+### JSON Enforcement Mode
 
 ```php
 $response = Ai::prompt("Extract contact info from this text")
@@ -154,7 +158,7 @@ $response = Ai::prompt("Extract contact info from this text")
 
 The orchestrator automatically ensures the model returns valid JSON, retries on errors, and validates schema.
 
-### 🔹 Schema Validation Example
+### Schema Validation Example
 
 ```php
 $validated = Ai::prompt("Generate product data")
@@ -170,7 +174,7 @@ Invalid JSON? The orchestrator retries with a correction prompt automatically.
 
 ---
 
-## 💾 Caching
+## Caching
 
 ```php
 $response = Ai::prompt("Summarize Laravel's request lifecycle")
@@ -180,7 +184,7 @@ $response = Ai::prompt("Summarize Laravel's request lifecycle")
 
 ---
 
-## 🔁 Streaming Responses
+## Streaming Responses
 
 ```php
 Ai::prompt("Generate step-by-step Laravel CI/CD guide")
@@ -191,7 +195,7 @@ Ai::prompt("Generate step-by-step Laravel CI/CD guide")
 
 ---
 
-## 📊 Token & Cost Tracking
+## Token & Cost Tracking
 
 ```php
 $total = Ai::usage()
@@ -210,7 +214,7 @@ $totalTokens = Ai::usage()
 
 ---
 
-## 🧱 Database Schema
+## Database Schema
 
 **Table:** `ai_logs`
 
@@ -230,7 +234,7 @@ $totalTokens = Ai::usage()
 
 ---
 
-## 🧰 Integration Examples
+## Integration Examples
 
 ```php
 // Blade / Controller
@@ -247,7 +251,7 @@ Route::post('/ai', fn(Request $req) =>
 
 ---
 
-## 🔌 Creating Custom Providers
+## Creating Custom Providers
 
 You can create your own AI provider by implementing the `AiProviderInterface`:
 
@@ -262,11 +266,11 @@ class CustomProvider implements AiProviderInterface
 
 ---
 
-## 📊 Dashboard
+## Dashboard
 
 The package includes a built-in dashboard for monitoring AI usage, costs, and performance.
 
-### ⚠️ Security Note
+### Security Note
 
 **The dashboard is disabled by default for security.** You must explicitly enable it.
 
@@ -301,17 +305,17 @@ AI_DASHBOARD_MIDDLEWARE=auth,admin.check
 
 ### Dashboard Features
 
-- 📊 Usage statistics (cost, tokens, requests)
-- 📈 Provider breakdown
-- 📋 Request logs
-- 🔍 Filtering by period (today/week/month/all)
-- 👤 User-specific analytics
+- Usage statistics (cost, tokens, requests)
+- Provider breakdown
+- Request logs
+- Filtering by period (today/week/month/all)
+- User-specific analytics
 
 See `DASHBOARD_SECURITY.md` for detailed security configuration.
 
 ---
 
-## 🧠 Future Roadmap
+## Future Roadmap
 
 - [ ] Auto model selector (route task to best model)  
 - [ ] UI dashboard for usage + cost analytics  
@@ -322,14 +326,14 @@ See `DASHBOARD_SECURITY.md` for detailed security configuration.
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Pull requests are welcome!  
 If you want to add a new provider, extend the `AiProvider` interface and submit a PR.
 
 ---
 
-## 📜 License
+## License
 
 MIT © 2025 — Laravel AI Orchestrator Team  
 Made for developers who believe AI should be **beautifully integrated**.
