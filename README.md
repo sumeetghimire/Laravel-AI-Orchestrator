@@ -543,6 +543,12 @@ class CustomProvider implements AiProviderInterface
 
 The package includes a built-in dashboard for monitoring AI usage, costs, and performance.
 
+### Dashboard Overview
+
+![Dashboard Main View](https://raw.githubusercontent.com/sumeetghimire/Laravel-AI-Orchestrator/main/public/images/dashboard1.png)
+
+![Dashboard Logs View](https://raw.githubusercontent.com/sumeetghimire/Laravel-AI-Orchestrator/main/public/images/dashboard2.png)
+
 ### Security Note
 
 **The dashboard is disabled by default for security.** You must explicitly enable it.
@@ -580,9 +586,11 @@ AI_DASHBOARD_MIDDLEWARE=auth,admin.check
 
 - Usage statistics (cost, tokens, requests)
 - Provider breakdown
-- Request logs
+- Request logs with full details
 - Filtering by period (today/week/month/all)
 - User-specific analytics
+- Real-time cost tracking
+- Cached vs non-cached requests
 
 See `DASHBOARD_SECURITY.md` for detailed security configuration.
 
