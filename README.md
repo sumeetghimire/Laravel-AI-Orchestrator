@@ -253,16 +253,45 @@ echo $transcription; // "The transcribed text..."
 ### Text-to-Speech
 
 ```php
-// Save to file
+// Auto-save to configured storage (user-specific folders)
 $audioPath = Ai::speak("Hello, this is a test")
     ->using('openai')
-    ->withOptions(['output_path' => storage_path('audio/output.mp3')])
     ->toAudio();
 
-// Or get as base64
+// Get public URL
+$url = Storage::disk('public')->url($audioPath);
+
+// Custom path
+$audioPath = Ai::speak("Custom message")
+    ->using('openai')
+    ->withOptions(['output_path' => 'custom/audio/output.mp3'])
+    ->toAudio();
+
+// Or get as base64 (no storage)
 $audioBase64 = Ai::speak("Hello world")
     ->using('openai')
+    ->withOptions(['output_path' => null])
     ->toAudio();
+```
+
+**Audio Storage Configuration:**
+
+The package automatically saves audio files to configured storage locations with user-specific folders. You can customize:
+
+- Storage disk (public, local, S3, etc.)
+- Storage path structure
+- User-specific folders
+- Automatic cleanup
+
+See **[AUDIO_STORAGE.md](AUDIO_STORAGE.md)** for complete audio storage configuration, examples, and best practices.
+
+```env
+# Audio Storage Configuration
+AI_AUDIO_DISK=public              # Storage disk
+AI_AUDIO_PATH=audio               # Base path
+AI_AUDIO_USER_SUBFOLDER=true      # Organize by user ID
+AI_AUDIO_AUTO_CLEANUP=false       # Auto cleanup old files
+AI_AUDIO_CLEANUP_DAYS=30          # Cleanup after X days
 ```
 
 ---
