@@ -158,7 +158,7 @@ class Response
         
         // Decode base64 and save
         $decoded = base64_decode($audioData);
-        \Illuminate\Support\Facades\Storage::disk($disk)->put($fullPath, $decoded);
+        Storage::disk($disk)->put($fullPath, $decoded);
         
         return $fullPath;
     }
