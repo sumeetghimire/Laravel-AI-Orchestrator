@@ -26,7 +26,7 @@ It handles provider differences, caching, cost tracking, fallback logic, and str
 ## 📦 Installation
 
 ```bash
-composer require sumeetghimire/ai-orchestrator
+composer require sumeetghimire/laravel-ai-orchestrator
 ```
 
 Then publish config:

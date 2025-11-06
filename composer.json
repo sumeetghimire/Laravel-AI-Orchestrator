@@ -1,5 +1,5 @@
 {
-    "name": "sumeetghimire/ai-orchestrator",
+    "name": "sumeetghimire/laravel-ai-orchestrator",
     "description": "A unified, driver-based AI orchestration layer for Laravel",
     "type": "library",
     "license": "MIT",
