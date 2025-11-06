@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Laravel\AiOrchestrator\Http\Controllers\DashboardController;
+use Sumeetghimire\AiOrchestrator\Http\Controllers\DashboardController;
 
 // Only register dashboard routes if enabled in config
 if (config('ai.dashboard.enabled', false)) {

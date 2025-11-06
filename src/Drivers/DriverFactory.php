@@ -1,6 +1,6 @@
 <?php
 
-namespace Laravel\AiOrchestrator\Drivers;
+namespace Sumeetghimire\AiOrchestrator\Drivers;
 
 use InvalidArgumentException;
 

@@ -1,10 +1,10 @@
 <?php
 
-namespace Laravel\AiOrchestrator\Http\Controllers;
+namespace Sumeetghimire\AiOrchestrator\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Laravel\AiOrchestrator\Facades\Ai;
-use Laravel\AiOrchestrator\Models\AiLog;
+use Sumeetghimire\AiOrchestrator\Facades\Ai;
+use Sumeetghimire\AiOrchestrator\Models\AiLog;
 use Carbon\Carbon;
 
 class DashboardController extends Controller

@@ -1,6 +1,6 @@
 <?php
 
-namespace Laravel\AiOrchestrator\Models;
+namespace Sumeetghimire\AiOrchestrator\Models;
 
 use Illuminate\Database\Eloquent\Model;
 

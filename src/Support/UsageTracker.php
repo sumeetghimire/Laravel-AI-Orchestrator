@@ -1,8 +1,8 @@
 <?php
 
-namespace Laravel\AiOrchestrator\Support;
+namespace Sumeetghimire\AiOrchestrator\Support;
 
-use Laravel\AiOrchestrator\Models\AiLog;
+use Sumeetghimire\AiOrchestrator\Models\AiLog;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;

@@ -1,6 +1,6 @@
 <?php
 
-namespace Laravel\AiOrchestrator;
+namespace Sumeetghimire\AiOrchestrator;
 
 use Illuminate\Support\ServiceProvider;
 

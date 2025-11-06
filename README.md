@@ -26,7 +26,7 @@ It handles provider differences, caching, cost tracking, fallback logic, and str
 ## 📦 Installation
 
 ```bash
-composer require laravel/ai-orchestrator
+composer require sumeetghimire/ai-orchestrator
 ```
 
 Then publish config:
@@ -86,7 +86,7 @@ GEMINI_API_KEY=your-api-key-here
 ### 🔹 Prompt Completion
 
 ```php
-use Laravel\AiOrchestrator\Facades\Ai;
+use Sumeetghimire\AiOrchestrator\Facades\Ai;
 
 $response = Ai::prompt("Write a tweet about Laravel 12")->toText();
 echo $response; 
@@ -252,7 +252,7 @@ Route::post('/ai', fn(Request $req) =>
 You can create your own AI provider by implementing the `AiProviderInterface`:
 
 ```php
-use Laravel\AiOrchestrator\Drivers\AiProviderInterface;
+use Sumeetghimire\AiOrchestrator\Drivers\AiProviderInterface;
 
 class CustomProvider implements AiProviderInterface
 {

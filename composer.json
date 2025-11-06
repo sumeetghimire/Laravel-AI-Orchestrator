@@ -1,5 +1,5 @@
 {
-    "name": "laravel/ai-orchestrator",
+    "name": "sumeetghimire/ai-orchestrator",
     "description": "A unified, driver-based AI orchestration layer for Laravel",
     "type": "library",
     "license": "MIT",
@@ -23,21 +23,21 @@
     },
     "autoload": {
         "psr-4": {
-            "Laravel\\AiOrchestrator\\": "src/"
+            "Sumeetghimire\\AiOrchestrator\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Laravel\\AiOrchestrator\\Tests\\": "tests/"
+            "Sumeetghimire\\AiOrchestrator\\Tests\\": "tests/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "Laravel\\AiOrchestrator\\AiOrchestratorServiceProvider"
+                "Sumeetghimire\\AiOrchestrator\\AiOrchestratorServiceProvider"
             ],
             "aliases": {
-                "Ai": "Laravel\\AiOrchestrator\\Facades\\Ai"
+                "Ai": "Sumeetghimire\\AiOrchestrator\\Facades\\Ai"
             }
         }
     },

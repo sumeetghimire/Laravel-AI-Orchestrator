@@ -1,15 +1,15 @@
 <?php
 
-namespace Laravel\AiOrchestrator\Facades;
+namespace Sumeetghimire\AiOrchestrator\Facades;
 
 use Illuminate\Support\Facades\Facade;
 
 /**
- * @method static \Laravel\AiOrchestrator\Support\Response prompt(string $prompt, array $variables = [])
- * @method static \Laravel\AiOrchestrator\Support\Response chat(array $messages)
- * @method static \Laravel\AiOrchestrator\Support\UsageTracker usage()
+ * @method static \Sumeetghimire\AiOrchestrator\Support\Response prompt(string $prompt, array $variables = [])
+ * @method static \Sumeetghimire\AiOrchestrator\Support\Response chat(array $messages)
+ * @method static \Sumeetghimire\AiOrchestrator\Support\UsageTracker usage()
  *
- * @see \Laravel\AiOrchestrator\AiOrchestrator
+ * @see \Sumeetghimire\AiOrchestrator\AiOrchestrator
  */
 class Ai extends Facade
 {

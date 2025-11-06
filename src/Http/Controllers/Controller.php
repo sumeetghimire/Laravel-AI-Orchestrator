@@ -1,6 +1,6 @@
 <?php
 
-namespace Laravel\AiOrchestrator\Http\Controllers;
+namespace Sumeetghimire\AiOrchestrator\Http\Controllers;
 
 use Illuminate\Routing\Controller as BaseController;
 

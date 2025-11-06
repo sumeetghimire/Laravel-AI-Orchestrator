@@ -1,10 +1,10 @@
 <?php
 
-namespace Laravel\AiOrchestrator\Support;
+namespace Sumeetghimire\AiOrchestrator\Support;
 
-use Laravel\AiOrchestrator\AiOrchestrator;
-use Laravel\AiOrchestrator\Drivers\AiProviderInterface;
-use Laravel\AiOrchestrator\Models\AiLog;
+use Sumeetghimire\AiOrchestrator\AiOrchestrator;
+use Sumeetghimire\AiOrchestrator\Drivers\AiProviderInterface;
+use Sumeetghimire\AiOrchestrator\Models\AiLog;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\JsonResponse;

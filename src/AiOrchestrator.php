@@ -1,11 +1,11 @@
 <?php
 
-namespace Laravel\AiOrchestrator;
+namespace Sumeetghimire\AiOrchestrator;
 
-use Laravel\AiOrchestrator\Support\Response;
-use Laravel\AiOrchestrator\Support\UsageTracker;
-use Laravel\AiOrchestrator\Drivers\AiProviderInterface;
-use Laravel\AiOrchestrator\Drivers\DriverFactory;
+use Sumeetghimire\AiOrchestrator\Support\Response;
+use Sumeetghimire\AiOrchestrator\Support\UsageTracker;
+use Sumeetghimire\AiOrchestrator\Drivers\AiProviderInterface;
+use Sumeetghimire\AiOrchestrator\Drivers\DriverFactory;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
