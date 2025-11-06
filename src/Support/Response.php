@@ -7,6 +7,7 @@ use Sumeetghimire\AiOrchestrator\Drivers\AiProviderInterface;
 use Sumeetghimire\AiOrchestrator\Models\AiLog;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\JsonResponse;
 use InvalidArgumentException;
 use RuntimeException;
@@ -123,7 +124,43 @@ class Response
     public function toAudio(): string
     {
         $result = $this->execute();
-        return $result['audio'] ?? '';
+        $audio = $result['audio'] ?? '';
+        
+        // If it's a base64 string and no output_path was specified, save to default location
+        if (!empty($audio) && !isset($this->options['output_path']) && base64_decode($audio, true) !== false) {
+            $audio = $this->saveAudioToStorage($audio);
+        }
+        
+        return $audio;
+    }
+    
+    /**
+     * Save audio to configured storage location.
+     */
+    protected function saveAudioToStorage(string $audioData): string
+    {
+        $config = $this->orchestrator->getConfig();
+        $audioConfig = $config['audio'] ?? [];
+        
+        $disk = $audioConfig['storage_disk'] ?? 'public';
+        $basePath = $audioConfig['storage_path'] ?? 'audio';
+        
+        // Create user-specific subfolder if enabled
+        $path = $basePath;
+        if ($audioConfig['user_subfolder'] ?? true) {
+            $userId = $this->orchestrator->getUserId();
+            $path = $basePath . '/' . ($userId ?? 'guest');
+        }
+        
+        // Generate unique filename
+        $filename = 'tts_' . time() . '_' . uniqid() . '.mp3';
+        $fullPath = $path . '/' . $filename;
+        
+        // Decode base64 and save
+        $decoded = base64_decode($audioData);
+        \Illuminate\Support\Facades\Storage::disk($disk)->put($fullPath, $decoded);
+        
+        return $fullPath;
     }
 
     /**

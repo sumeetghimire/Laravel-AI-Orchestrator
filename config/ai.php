@@ -47,5 +47,13 @@ return [
         'middleware' => env('AI_DASHBOARD_MIDDLEWARE', 'web'), // Middleware to protect dashboard
         'prefix' => env('AI_DASHBOARD_PREFIX', 'ai-orchestrator'), // URL prefix
     ],
+    'audio' => [
+        'storage_disk' => env('AI_AUDIO_DISK', 'public'), // Storage disk (public, local, s3, etc.)
+        'storage_path' => env('AI_AUDIO_PATH', 'audio'), // Base path within storage disk
+        'public_path' => env('AI_AUDIO_PUBLIC_PATH', 'storage/audio'), // Public URL path
+        'user_subfolder' => env('AI_AUDIO_USER_SUBFOLDER', true), // Store in user-specific folders
+        'auto_cleanup' => env('AI_AUDIO_AUTO_CLEANUP', false), // Auto cleanup old files
+        'cleanup_after_days' => env('AI_AUDIO_CLEANUP_DAYS', 30), // Cleanup files older than X days
+    ],
 ];
 

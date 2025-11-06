@@ -4,6 +4,7 @@ namespace Sumeetghimire\AiOrchestrator\Drivers;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
+use Illuminate\Support\Facades\Storage;
 
 class OpenAIProvider implements AiProviderInterface
 {
@@ -236,14 +237,29 @@ class OpenAIProvider implements AiProviderInterface
                 ], $options),
             ]);
 
+            $audioContent = $response->getBody()->getContents();
+            
             // Save audio to file if output path provided
             if (isset($options['output_path'])) {
-                file_put_contents($options['output_path'], $response->getBody()->getContents());
+                // Support both absolute paths and Laravel storage paths
+                if (strpos($options['output_path'], storage_path()) === 0 || 
+                    strpos($options['output_path'], '/') === 0) {
+                    // Absolute path
+                    $directory = dirname($options['output_path']);
+                    if (!is_dir($directory)) {
+                        mkdir($directory, 0755, true);
+                    }
+                    file_put_contents($options['output_path'], $audioContent);
+                } else {
+                    // Laravel storage path (e.g., 'audio/file.mp3')
+                    $disk = $options['disk'] ?? 'public';
+                    Storage::disk($disk)->put($options['output_path'], $audioContent);
+                }
                 return $options['output_path'];
             }
 
             // Return audio data as base64
-            return base64_encode($response->getBody()->getContents());
+            return base64_encode($audioContent);
         } catch (RequestException $e) {
             throw new \RuntimeException('OpenAI API error: ' . $e->getMessage(), 0, $e);
         }
