@@ -214,18 +214,24 @@ class OpenAIProvider implements AiProviderInterface
                 throw new \InvalidArgumentException("Audio file is empty: {$audioPath}");
             }
 
-            // Open file for reading - Guzzle will handle closing the stream
-            $fileHandle = fopen($audioPath, 'r');
-            if (!$fileHandle) {
-                throw new \InvalidArgumentException("Could not open audio file: {$audioPath}");
+            // Read file contents - Guzzle multipart handles streams automatically
+            // We'll pass the file path directly and let Guzzle handle the stream
+            $fileContents = file_get_contents($audioPath);
+            if ($fileContents === false) {
+                throw new \InvalidArgumentException("Could not read audio file: {$audioPath}");
             }
+
+            // Create a temporary stream from the file contents
+            $stream = fopen('php://temp', 'r+');
+            fwrite($stream, $fileContents);
+            rewind($stream);
 
             try {
                 $response = $this->client->post('audio/transcriptions', [
                     'multipart' => [
                         [
                             'name' => 'file',
-                            'contents' => $fileHandle,
+                            'contents' => $stream,
                             'filename' => basename($audioPath),
                         ],
                         [
@@ -239,14 +245,14 @@ class OpenAIProvider implements AiProviderInterface
                     ],
                 ]);
 
-                // Guzzle closes the stream automatically, but check if it's still valid before closing
-                if (is_resource($fileHandle)) {
-                    @fclose($fileHandle);
+                // Close the temporary stream
+                if (is_resource($stream)) {
+                    fclose($stream);
                 }
             } catch (\Exception $e) {
-                // Ensure file handle is closed on error
-                if (is_resource($fileHandle)) {
-                    @fclose($fileHandle);
+                // Ensure stream is closed on error
+                if (is_resource($stream)) {
+                    fclose($stream);
                 }
                 throw $e;
             }
