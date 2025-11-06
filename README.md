@@ -18,7 +18,8 @@ It handles provider differences, caching, cost tracking, fallback logic, and str
 - Smart caching to reduce token usage & cost  
 - Token + cost tracking per user & provider  
 - Streaming support for chat responses  
-- Unified API for chat, completion, embedding, and image generation  
+- Multi-modal support — images, audio, embeddings  
+- Unified API for chat, completion, embeddings, image generation, and audio  
 - Structured Output (JSON / typed responses)  
 - Extendable driver system — add your own AI provider  
 - User attribution + quota tracking  
@@ -191,6 +192,64 @@ Ai::prompt("Generate step-by-step Laravel CI/CD guide")
     ->stream(function ($chunk) {
         echo $chunk;
     });
+```
+
+---
+
+## Multi-Modal Support
+
+### Image Generation
+
+```php
+$images = Ai::image("A futuristic cityscape at sunset")
+    ->using('openai')
+    ->toImages();
+
+// Returns array of image URLs
+foreach ($images as $imageUrl) {
+    echo "<img src='{$imageUrl}'>";
+}
+```
+
+### Embeddings (Vector Search)
+
+```php
+// Generate embeddings for semantic search
+$embeddings = Ai::embed("Laravel is a PHP framework")
+    ->using('openai')
+    ->toEmbeddings();
+
+// Or multiple texts at once
+$embeddings = Ai::embed([
+    "Laravel framework",
+    "PHP development",
+    "Web application"
+])->toEmbeddings();
+```
+
+### Audio Transcription (Speech-to-Text)
+
+```php
+$transcription = Ai::transcribe(storage_path('audio/recording.mp3'))
+    ->using('openai')
+    ->toText();
+
+echo $transcription; // "The transcribed text..."
+```
+
+### Text-to-Speech
+
+```php
+// Save to file
+$audioPath = Ai::speak("Hello, this is a test")
+    ->using('openai')
+    ->withOptions(['output_path' => storage_path('audio/output.mp3')])
+    ->toAudio();
+
+// Or get as base64
+$audioBase64 = Ai::speak("Hello world")
+    ->using('openai')
+    ->toAudio();
 ```
 
 ---

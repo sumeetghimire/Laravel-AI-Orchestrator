@@ -7,6 +7,10 @@ use Illuminate\Support\Facades\Facade;
 /**
  * @method static \Sumeetghimire\AiOrchestrator\Support\Response prompt(string $prompt, array $variables = [])
  * @method static \Sumeetghimire\AiOrchestrator\Support\Response chat(array $messages)
+ * @method static \Sumeetghimire\AiOrchestrator\Support\Response image(string $prompt, array $options = [])
+ * @method static \Sumeetghimire\AiOrchestrator\Support\Response embed(string|array $text, array $options = [])
+ * @method static \Sumeetghimire\AiOrchestrator\Support\Response transcribe(string $audioPath, array $options = [])
+ * @method static \Sumeetghimire\AiOrchestrator\Support\Response speak(string $text, array $options = [])
  * @method static \Sumeetghimire\AiOrchestrator\Support\UsageTracker usage()
  *
  * @see \Sumeetghimire\AiOrchestrator\AiOrchestrator

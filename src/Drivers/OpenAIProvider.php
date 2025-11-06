@@ -141,5 +141,112 @@ class OpenAIProvider implements AiProviderInterface
     {
         return 'openai';
     }
+
+    public function generateImage(string $prompt, array $options = []): array
+    {
+        try {
+            $response = $this->client->post('images/generations', [
+                'json' => array_merge([
+                    'prompt' => $prompt,
+                    'n' => $options['n'] ?? 1,
+                    'size' => $options['size'] ?? '1024x1024',
+                    'response_format' => $options['response_format'] ?? 'url',
+                ], $options),
+            ]);
+
+            $data = json_decode($response->getBody()->getContents(), true);
+
+            return [
+                'images' => array_column($data['data'] ?? [], 'url'),
+                'revised_prompt' => $data['data'][0]['revised_prompt'] ?? null,
+            ];
+        } catch (RequestException $e) {
+            throw new \RuntimeException('OpenAI API error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    public function embedText(string|array $text, array $options = []): array
+    {
+        try {
+            $input = is_array($text) ? $text : [$text];
+            $model = $options['model'] ?? 'text-embedding-3-small';
+
+            $response = $this->client->post('embeddings', [
+                'json' => array_merge([
+                    'model' => $model,
+                    'input' => $input,
+                ], $options),
+            ]);
+
+            $data = json_decode($response->getBody()->getContents(), true);
+
+            return [
+                'embeddings' => array_column($data['data'] ?? [], 'embedding'),
+                'usage' => $data['usage'] ?? [],
+            ];
+        } catch (RequestException $e) {
+            throw new \RuntimeException('OpenAI API error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    public function transcribeAudio(string $audioPath, array $options = []): array
+    {
+        try {
+            if (!file_exists($audioPath)) {
+                throw new \InvalidArgumentException("Audio file not found: {$audioPath}");
+            }
+
+            $response = $this->client->post('audio/transcriptions', [
+                'multipart' => [
+                    [
+                        'name' => 'file',
+                        'contents' => fopen($audioPath, 'r'),
+                        'filename' => basename($audioPath),
+                    ],
+                    [
+                        'name' => 'model',
+                        'contents' => $options['model'] ?? 'whisper-1',
+                    ],
+                    [
+                        'name' => 'language',
+                        'contents' => $options['language'] ?? '',
+                    ],
+                ],
+            ]);
+
+            $data = json_decode($response->getBody()->getContents(), true);
+
+            return [
+                'text' => $data['text'] ?? '',
+                'language' => $data['language'] ?? null,
+            ];
+        } catch (RequestException $e) {
+            throw new \RuntimeException('OpenAI API error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    public function textToSpeech(string $text, array $options = []): string
+    {
+        try {
+            $response = $this->client->post('audio/speech', [
+                'json' => array_merge([
+                    'model' => $options['model'] ?? 'tts-1',
+                    'input' => $text,
+                    'voice' => $options['voice'] ?? 'alloy',
+                ], $options),
+            ]);
+
+            // Save audio to file if output path provided
+            if (isset($options['output_path'])) {
+                file_put_contents($options['output_path'], $response->getBody()->getContents());
+                return $options['output_path'];
+            }
+
+            // Return audio data as base64
+            return base64_encode($response->getBody()->getContents());
+        } catch (RequestException $e) {
+            throw new \RuntimeException('OpenAI API error: ' . $e->getMessage(), 0, $e);
+        }
+    }
 }
 

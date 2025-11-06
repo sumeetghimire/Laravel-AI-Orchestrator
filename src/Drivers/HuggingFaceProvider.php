@@ -95,5 +95,44 @@ class HuggingFaceProvider implements AiProviderInterface
     {
         return 'huggingface';
     }
+
+    public function generateImage(string $prompt, array $options = []): array
+    {
+        throw new \RuntimeException('Image generation not supported by HuggingFace. Use OpenAI or other providers.');
+    }
+
+    public function embedText(string|array $text, array $options = []): array
+    {
+        try {
+            $input = is_array($text) ? $text : [$text];
+            $embeddings = [];
+            
+            foreach ($input as $item) {
+                $response = $this->client->post("models/sentence-transformers/all-MiniLM-L6-v2", [
+                    'json' => ['inputs' => $item],
+                ]);
+                
+                $data = json_decode($response->getBody()->getContents(), true);
+                $embeddings[] = is_array($data) ? $data : [];
+            }
+
+            return [
+                'embeddings' => $embeddings,
+                'usage' => [],
+            ];
+        } catch (RequestException $e) {
+            throw new \RuntimeException('HuggingFace API error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    public function transcribeAudio(string $audioPath, array $options = []): array
+    {
+        throw new \RuntimeException('Audio transcription not supported by HuggingFace. Use OpenAI Whisper.');
+    }
+
+    public function textToSpeech(string $text, array $options = []): string
+    {
+        throw new \RuntimeException('Text-to-speech not supported by HuggingFace. Use OpenAI TTS or other providers.');
+    }
 }
 

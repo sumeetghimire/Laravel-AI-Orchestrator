@@ -117,5 +117,68 @@ class ReplicateProvider implements AiProviderInterface
     {
         return 'replicate';
     }
+
+    public function generateImage(string $prompt, array $options = []): array
+    {
+        try {
+            // Use Stable Diffusion or similar model
+            $model = $options['model'] ?? 'stability-ai/stable-diffusion';
+            
+            $response = $this->client->post('predictions', [
+                'json' => [
+                    'version' => $options['version'] ?? null,
+                    'input' => [
+                        'prompt' => $prompt,
+                    ],
+                ],
+            ]);
+
+            $prediction = json_decode($response->getBody()->getContents(), true);
+            $predictionId = $prediction['id'];
+
+            // Poll for completion
+            $maxAttempts = 60;
+            $attempt = 0;
+            while ($attempt < $maxAttempts) {
+                sleep(1);
+                $statusResponse = $this->client->get("predictions/{$predictionId}");
+                $status = json_decode($statusResponse->getBody()->getContents(), true);
+
+                if ($status['status'] === 'succeeded') {
+                    $output = $status['output'] ?? [];
+                    $images = is_array($output) ? $output : [$output];
+
+                    return [
+                        'images' => array_filter($images, fn($img) => is_string($img)),
+                    ];
+                }
+
+                if ($status['status'] === 'failed' || $status['status'] === 'canceled') {
+                    throw new \RuntimeException('Replicate prediction failed: ' . ($status['error'] ?? 'Unknown error'));
+                }
+
+                $attempt++;
+            }
+
+            throw new \RuntimeException('Replicate prediction timed out');
+        } catch (RequestException $e) {
+            throw new \RuntimeException('Replicate API error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    public function embedText(string|array $text, array $options = []): array
+    {
+        throw new \RuntimeException('Embeddings not supported by Replicate. Use OpenAI or other providers.');
+    }
+
+    public function transcribeAudio(string $audioPath, array $options = []): array
+    {
+        throw new \RuntimeException('Audio transcription not supported by Replicate. Use OpenAI Whisper.');
+    }
+
+    public function textToSpeech(string $text, array $options = []): string
+    {
+        throw new \RuntimeException('Text-to-speech not supported by Replicate. Use OpenAI TTS or other providers.');
+    }
 }
 

@@ -24,11 +24,12 @@ class Response
     protected bool $isCached = false;
     protected ?array $result = null;
 
-    public function __construct(AiOrchestrator $orchestrator, mixed $input, string $type = 'prompt')
+    public function __construct(AiOrchestrator $orchestrator, mixed $input, string $type = 'prompt', array $options = [])
     {
         $this->orchestrator = $orchestrator;
         $this->input = $input;
         $this->type = $type;
+        $this->options = $options;
     }
 
     /**
@@ -90,7 +91,39 @@ class Response
     public function toText(): string
     {
         $result = $this->execute();
+        
+        if ($this->type === 'transcribe') {
+            return $result['text'] ?? '';
+        }
+        
         return $result['content'] ?? '';
+    }
+
+    /**
+     * Get image URLs.
+     */
+    public function toImages(): array
+    {
+        $result = $this->execute();
+        return $result['images'] ?? [];
+    }
+
+    /**
+     * Get embeddings.
+     */
+    public function toEmbeddings(): array
+    {
+        $result = $this->execute();
+        return $result['embeddings'] ?? [];
+    }
+
+    /**
+     * Get audio file path or base64.
+     */
+    public function toAudio(): string
+    {
+        $result = $this->execute();
+        return $result['audio'] ?? '';
     }
 
     /**
@@ -186,15 +219,32 @@ class Response
         $messages = $this->prepareMessages();
 
         try {
-            $result = $this->type === 'chat' 
-                ? $provider->chat($messages, $this->options)
-                : $provider->complete($messages, $this->options);
+            $result = match ($this->type) {
+                'chat' => $provider->chat($messages, $this->options),
+                'image' => $provider->generateImage($messages, $this->options),
+                'embedding' => $provider->embedText($messages, $this->options),
+                'transcribe' => $provider->transcribeAudio($messages, $this->options),
+                'speech' => ['audio' => $provider->textToSpeech($messages, $this->options)],
+                default => $provider->complete($messages, $this->options),
+            };
 
-            // Calculate cost
-            $cost = $provider->calculateCost(
-                $result['input_tokens'] ?? 0,
-                $result['output_tokens'] ?? 0
-            );
+            // Calculate cost (only for text operations with tokens)
+            $cost = 0.0;
+            if ($this->type === 'prompt' || $this->type === 'chat') {
+                $cost = $provider->calculateCost(
+                    $result['input_tokens'] ?? 0,
+                    $result['output_tokens'] ?? 0
+                );
+            } elseif ($this->type === 'embedding') {
+                // Embedding cost calculation (simplified)
+                $cost = ($result['usage']['total_tokens'] ?? 0) / 1000000 * 0.0001; // Approximate
+            } elseif ($this->type === 'image') {
+                // Image generation cost (DALL-E pricing)
+                $cost = 0.040; // Approximate per image
+            } elseif ($this->type === 'transcribe' || $this->type === 'speech') {
+                // Audio cost (Whisper/TTS pricing)
+                $cost = 0.006; // Approximate per minute
+            }
 
             // Log the request
             $this->logRequest($provider, $messages, $result, $cost);
@@ -233,6 +283,10 @@ class Response
     protected function prepareMessages(): array|string
     {
         if ($this->type === 'chat') {
+            return $this->input;
+        }
+
+        if ($this->type === 'image' || $this->type === 'embedding' || $this->type === 'transcribe' || $this->type === 'speech') {
             return $this->input;
         }
 
@@ -377,13 +431,21 @@ class Response
             $startTime = microtime(true);
             $duration = microtime(true) - $startTime;
 
+            $responseContent = match ($this->type) {
+                'image' => json_encode($result['images'] ?? []),
+                'embedding' => 'Embeddings generated (' . count($result['embeddings'] ?? []) . ' vectors)',
+                'transcribe' => $result['text'] ?? '',
+                'speech' => 'Audio generated',
+                default => $result['content'] ?? '',
+            };
+
             AiLog::create([
                 'user_id' => $this->orchestrator->getUserId(),
                 'provider' => $provider->getName(),
                 'model' => $provider->getModel(),
-                'prompt' => is_array($input) ? json_encode($input) : $input,
-                'response' => $result['content'] ?? '',
-                'tokens' => $result['total_tokens'] ?? 0,
+                'prompt' => is_array($input) ? json_encode($input) : (is_string($input) ? $input : json_encode($input)),
+                'response' => $responseContent,
+                'tokens' => $result['total_tokens'] ?? ($result['usage']['total_tokens'] ?? 0),
                 'cost' => $cost,
                 'cached' => $this->isCached,
                 'duration' => $duration,

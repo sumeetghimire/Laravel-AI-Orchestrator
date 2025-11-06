@@ -152,5 +152,25 @@ class AnthropicProvider implements AiProviderInterface
     {
         return 'anthropic';
     }
+
+    public function generateImage(string $prompt, array $options = []): array
+    {
+        throw new \RuntimeException('Image generation not supported by Anthropic. Use OpenAI or other providers.');
+    }
+
+    public function embedText(string|array $text, array $options = []): array
+    {
+        throw new \RuntimeException('Embeddings not directly supported by Anthropic API. Use OpenAI or other providers.');
+    }
+
+    public function transcribeAudio(string $audioPath, array $options = []): array
+    {
+        throw new \RuntimeException('Audio transcription not supported by Anthropic. Use OpenAI Whisper.');
+    }
+
+    public function textToSpeech(string $text, array $options = []): string
+    {
+        throw new \RuntimeException('Text-to-speech not supported by Anthropic. Use OpenAI TTS or other providers.');
+    }
 }
 

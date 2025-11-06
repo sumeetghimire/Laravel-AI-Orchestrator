@@ -102,5 +102,47 @@ class OllamaProvider implements AiProviderInterface
     {
         return 'ollama';
     }
+
+    public function generateImage(string $prompt, array $options = []): array
+    {
+        throw new \RuntimeException('Image generation not supported by Ollama. Use OpenAI or other providers.');
+    }
+
+    public function embedText(string|array $text, array $options = []): array
+    {
+        try {
+            $input = is_array($text) ? $text : [$text];
+            $embeddings = [];
+            
+            foreach ($input as $item) {
+                $response = $this->client->post('api/embeddings', [
+                    'json' => [
+                        'model' => $this->model,
+                        'prompt' => $item,
+                    ],
+                ]);
+                
+                $data = json_decode($response->getBody()->getContents(), true);
+                $embeddings[] = $data['embedding'] ?? [];
+            }
+
+            return [
+                'embeddings' => $embeddings,
+                'usage' => [],
+            ];
+        } catch (RequestException $e) {
+            throw new \RuntimeException('Ollama API error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    public function transcribeAudio(string $audioPath, array $options = []): array
+    {
+        throw new \RuntimeException('Audio transcription not supported by Ollama. Use OpenAI Whisper.');
+    }
+
+    public function textToSpeech(string $text, array $options = []): string
+    {
+        throw new \RuntimeException('Text-to-speech not supported by Ollama. Use OpenAI TTS or other providers.');
+    }
 }
 

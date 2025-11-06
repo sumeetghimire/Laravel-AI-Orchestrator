@@ -49,6 +49,58 @@ class AiOrchestrator
     }
 
     /**
+     * Generate an image from a prompt.
+     */
+    public function image(string $prompt, array $options = []): Response
+    {
+        return new Response(
+            $this,
+            $prompt,
+            'image',
+            $options
+        );
+    }
+
+    /**
+     * Create embeddings from text.
+     */
+    public function embed(string|array $text, array $options = []): Response
+    {
+        return new Response(
+            $this,
+            $text,
+            'embedding',
+            $options
+        );
+    }
+
+    /**
+     * Transcribe audio to text.
+     */
+    public function transcribe(string $audioPath, array $options = []): Response
+    {
+        return new Response(
+            $this,
+            $audioPath,
+            'transcribe',
+            $options
+        );
+    }
+
+    /**
+     * Convert text to speech.
+     */
+    public function speak(string $text, array $options = []): Response
+    {
+        return new Response(
+            $this,
+            $text,
+            'speech',
+            $options
+        );
+    }
+
+    /**
      * Get usage tracker.
      */
     public function usage(): UsageTracker

@@ -132,5 +132,44 @@ class GeminiProvider implements AiProviderInterface
     {
         return 'gemini';
     }
+
+    public function generateImage(string $prompt, array $options = []): array
+    {
+        throw new \RuntimeException('Image generation not supported by Gemini. Use OpenAI or other providers.');
+    }
+
+    public function embedText(string|array $text, array $options = []): array
+    {
+        try {
+            $input = is_array($text) ? $text : [$text];
+            $response = $this->client->post("models/embedding-001:embedContent", [
+                'query' => ['key' => $this->config['api_key']],
+                'json' => [
+                    'model' => 'models/embedding-001',
+                    'content' => [
+                        'parts' => array_map(fn($t) => ['text' => $t], $input),
+                    ],
+                ],
+            ]);
+
+            $data = json_decode($response->getBody()->getContents(), true);
+            return [
+                'embeddings' => [$data['embedding']['values'] ?? []],
+                'usage' => [],
+            ];
+        } catch (RequestException $e) {
+            throw new \RuntimeException('Gemini API error: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    public function transcribeAudio(string $audioPath, array $options = []): array
+    {
+        throw new \RuntimeException('Audio transcription not supported by Gemini. Use OpenAI Whisper.');
+    }
+
+    public function textToSpeech(string $text, array $options = []): string
+    {
+        throw new \RuntimeException('Text-to-speech not supported by Gemini. Use OpenAI TTS or other providers.');
+    }
 }
 
