@@ -1,0 +1,112 @@
+<?php
+
+namespace Laravel\AiOrchestrator;
+
+use Laravel\AiOrchestrator\Support\Response;
+use Laravel\AiOrchestrator\Support\UsageTracker;
+use Laravel\AiOrchestrator\Drivers\AiProviderInterface;
+use Laravel\AiOrchestrator\Drivers\DriverFactory;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+
+class AiOrchestrator
+{
+    protected array $config;
+    protected ?int $userId = null;
+    protected DriverFactory $driverFactory;
+
+    public function __construct(array $config)
+    {
+        $this->config = $config;
+        $this->driverFactory = new DriverFactory($config);
+    }
+
+    /**
+     * Create a prompt request.
+     */
+    public function prompt(string $prompt, array $variables = []): Response
+    {
+        // Replace variables in prompt
+        $resolvedPrompt = $this->resolveVariables($prompt, $variables);
+
+        return new Response(
+            $this,
+            $resolvedPrompt,
+            'prompt'
+        );
+    }
+
+    /**
+     * Create a chat request.
+     */
+    public function chat(array $messages): Response
+    {
+        return new Response(
+            $this,
+            $messages,
+            'chat'
+        );
+    }
+
+    /**
+     * Get usage tracker.
+     */
+    public function usage(): UsageTracker
+    {
+        return new UsageTracker();
+    }
+
+    /**
+     * Resolve variables in prompt string.
+     */
+    protected function resolveVariables(string $prompt, array $variables): string
+    {
+        foreach ($variables as $key => $value) {
+            $prompt = str_replace('{' . $key . '}', is_array($value) ? json_encode($value) : $value, $prompt);
+        }
+
+        return $prompt;
+    }
+
+    /**
+     * Get provider instance.
+     */
+    public function getProvider(string $providerName): AiProviderInterface
+    {
+        return $this->driverFactory->make($providerName);
+    }
+
+    /**
+     * Get default provider name.
+     */
+    public function getDefaultProvider(): string
+    {
+        return $this->config['default'] ?? 'openai';
+    }
+
+    /**
+     * Get config.
+     */
+    public function getConfig(): array
+    {
+        return $this->config;
+    }
+
+    /**
+     * Set user ID for attribution.
+     */
+    public function setUserId(?int $userId): self
+    {
+        $this->userId = $userId;
+        return $this;
+    }
+
+    /**
+     * Get user ID.
+     */
+    public function getUserId(): ?int
+    {
+        return $this->userId ?? auth()->id();
+    }
+}
+
