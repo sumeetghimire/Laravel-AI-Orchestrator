@@ -101,15 +101,43 @@ class OpenAIProvider implements AiProviderInterface
             ]);
 
             $body = $response->getBody();
+            $buffer = '';
+            
             while (!$body->eof()) {
-                $line = $body->readLine();
-                if (empty($line) || $line === 'data: [DONE]') {
-                    continue;
+                $chunk = $body->read(8192); // Read in chunks
+                if ($chunk === '') {
+                    break;
                 }
+                
+                $buffer .= $chunk;
+                
+                // Process complete lines
+                while (($pos = strpos($buffer, "\n")) !== false) {
+                    $line = substr($buffer, 0, $pos);
+                    $buffer = substr($buffer, $pos + 1);
+                    
+                    $line = trim($line);
+                    if (empty($line) || $line === 'data: [DONE]') {
+                        continue;
+                    }
 
-                if (strpos($line, 'data: ') === 0) {
-                    $data = json_decode(substr($line, 6), true);
-                    if (isset($data['choices'][0]['delta']['content'])) {
+                    if (strpos($line, 'data: ') === 0) {
+                        $jsonData = substr($line, 6);
+                        $data = json_decode($jsonData, true);
+                        if (json_last_error() === JSON_ERROR_NONE && isset($data['choices'][0]['delta']['content'])) {
+                            $callback($data['choices'][0]['delta']['content']);
+                        }
+                    }
+                }
+            }
+            
+            // Process any remaining buffer
+            if (!empty($buffer)) {
+                $line = trim($buffer);
+                if (!empty($line) && $line !== 'data: [DONE]' && strpos($line, 'data: ') === 0) {
+                    $jsonData = substr($line, 6);
+                    $data = json_decode($jsonData, true);
+                    if (json_last_error() === JSON_ERROR_NONE && isset($data['choices'][0]['delta']['content'])) {
                         $callback($data['choices'][0]['delta']['content']);
                     }
                 }
