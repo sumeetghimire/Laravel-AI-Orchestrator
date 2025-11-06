@@ -193,27 +193,63 @@ class OpenAIProvider implements AiProviderInterface
     public function transcribeAudio(string $audioPath, array $options = []): array
     {
         try {
+            // Check if file exists
             if (!file_exists($audioPath)) {
-                throw new \InvalidArgumentException("Audio file not found: {$audioPath}");
+                // Try with absolute path if relative path provided
+                $absolutePath = realpath($audioPath);
+                if (!$absolutePath || !file_exists($absolutePath)) {
+                    throw new \InvalidArgumentException("Audio file not found: {$audioPath}");
+                }
+                $audioPath = $absolutePath;
             }
 
-            $response = $this->client->post('audio/transcriptions', [
-                'multipart' => [
-                    [
-                        'name' => 'file',
-                        'contents' => fopen($audioPath, 'r'),
-                        'filename' => basename($audioPath),
+            // Verify file is readable
+            if (!is_readable($audioPath)) {
+                throw new \InvalidArgumentException("Audio file is not readable: {$audioPath}");
+            }
+
+            // Check file size
+            $fileSize = filesize($audioPath);
+            if ($fileSize === 0 || $fileSize === false) {
+                throw new \InvalidArgumentException("Audio file is empty: {$audioPath}");
+            }
+
+            // Open file for reading - Guzzle will handle closing the stream
+            $fileHandle = fopen($audioPath, 'r');
+            if (!$fileHandle) {
+                throw new \InvalidArgumentException("Could not open audio file: {$audioPath}");
+            }
+
+            try {
+                $response = $this->client->post('audio/transcriptions', [
+                    'multipart' => [
+                        [
+                            'name' => 'file',
+                            'contents' => $fileHandle,
+                            'filename' => basename($audioPath),
+                        ],
+                        [
+                            'name' => 'model',
+                            'contents' => $options['model'] ?? 'whisper-1',
+                        ],
+                        [
+                            'name' => 'language',
+                            'contents' => $options['language'] ?? '',
+                        ],
                     ],
-                    [
-                        'name' => 'model',
-                        'contents' => $options['model'] ?? 'whisper-1',
-                    ],
-                    [
-                        'name' => 'language',
-                        'contents' => $options['language'] ?? '',
-                    ],
-                ],
-            ]);
+                ]);
+
+                // Guzzle closes the stream automatically, but check if it's still valid before closing
+                if (is_resource($fileHandle)) {
+                    @fclose($fileHandle);
+                }
+            } catch (\Exception $e) {
+                // Ensure file handle is closed on error
+                if (is_resource($fileHandle)) {
+                    @fclose($fileHandle);
+                }
+                throw $e;
+            }
 
             $data = json_decode($response->getBody()->getContents(), true);
 
@@ -223,6 +259,8 @@ class OpenAIProvider implements AiProviderInterface
             ];
         } catch (RequestException $e) {
             throw new \RuntimeException('OpenAI API error: ' . $e->getMessage(), 0, $e);
+        } catch (\Exception $e) {
+            throw new \RuntimeException('Transcription error: ' . $e->getMessage(), 0, $e);
         }
     }
 
