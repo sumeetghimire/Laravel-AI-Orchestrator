@@ -3,14 +3,13 @@
 This guide covers setting up and using self-hosted/local AI models with Laravel AI Orchestrator.
 
 ## Table of Contents
-
-- [Why Self-Hosted Models?](#why-self-hosted-models)
-- [Ollama Setup](#ollama-setup)
-- [Configuration](#configuration)
-- [Usage Examples](#usage-examples)
-- [Deployment Options](#deployment-options)
-- [Custom Self-Hosted Providers](#custom-self-hosted-providers)
-- [Troubleshooting](#troubleshooting)
+[Why Self-Hosted Models?](#why-self-hosted-models)
+[Ollama Setup](#ollama-setup)
+[Configuration](#configuration)
+[Usage Examples](#usage-examples)
+[Deployment Options](#deployment-options)
+[Custom Self-Hosted Providers](#custom-self-hosted-providers)
+[Troubleshooting](#troubleshooting)
 
 ## Why Self-Hosted Models?
 
@@ -24,12 +23,11 @@ This guide covers setting up and using self-hosted/local AI models with Laravel 
 6. **Development** — Perfect for testing without API costs
 
 ### When to Use
-
-- **Development & Testing** — Test AI features without API costs
-- **Privacy-Sensitive Applications** — Healthcare, finance, legal
-- **High Volume** — Process thousands of requests without cost
-- **Offline Applications** — Edge devices, air-gapped networks
-- **Custom Models** — Fine-tuned models for specific domains
+**Development & Testing** — Test AI features without API costs
+**Privacy-Sensitive Applications** — Healthcare, finance, legal
+**High Volume** — Process thousands of requests without cost
+**Offline Applications** — Edge devices, air-gapped networks
+**Custom Models** — Fine-tuned models for specific domains
 
 ## Ollama Setup
 
@@ -135,20 +133,14 @@ The `config/ai.php` file already includes Ollama configuration:
 
 ```php
 use Sumeetghimire\AiOrchestrator\Facades\Ai;
-
-// Use Ollama as default
 $response = Ai::prompt("Explain Laravel's service container")
-    ->toText();
-
-// Explicit provider
+->toText();
 $response = Ai::prompt("Write a Python function")
-    ->using('ollama')
-    ->toText();
-
-// Specify model inline
+->using('ollama')
+->toText();
 $response = Ai::prompt("Generate SQL query")
-    ->using('ollama:codellama')
-    ->toText();
+->using('ollama:codellama')
+->toText();
 ```
 
 ### Chat Conversations
@@ -158,15 +150,15 @@ $response = Ai::chat([
     ['role' => 'system', 'content' => 'You are a helpful coding assistant.'],
     ['role' => 'user', 'content' => 'Write a Fibonacci function in PHP.'],
 ])->using('ollama:codellama')
-  ->toText();
+->toText();
 ```
 
 ### Embeddings
 
 ```php
 $embeddings = Ai::embed("Laravel is a PHP framework")
-    ->using('ollama')
-    ->toEmbeddings();
+->using('ollama')
+->toEmbeddings();
 ```
 
 ### Hybrid Setup (Cloud + Local)
@@ -174,16 +166,13 @@ $embeddings = Ai::embed("Laravel is a PHP framework")
 Use cloud for production, local for development:
 
 ```php
-// Production: Cloud with local fallback
 $response = Ai::prompt("Complex analysis")
-    ->using('openai')
-    ->fallback('ollama:llama3')
-    ->toText();
-
-// Development: Local only
+->using('openai')
+->fallback('ollama:llama3')
+->toText();
 $response = Ai::prompt("Test prompt")
-    ->using('ollama')
-    ->toText();
+->using('ollama')
+->toText();
 ```
 
 ### Cost-Saving Strategy
@@ -191,18 +180,17 @@ $response = Ai::prompt("Test prompt")
 Use local models for development/testing, cloud for production:
 
 ```php
-// app/helpers.php or in your service
 function aiResponse($prompt) {
     if (app()->environment('local')) {
         return Ai::prompt($prompt)
-            ->using('ollama')
-            ->toText();
+->using('ollama')
+->toText();
     }
     
     return Ai::prompt($prompt)
-        ->using('openai')
-        ->fallback('ollama')
-        ->toText();
+->using('openai')
+->fallback('ollama')
+->toText();
 }
 ```
 
@@ -241,15 +229,15 @@ services:
   ollama:
     image: ollama/ollama:latest
     ports:
-      - "11434:11434"
+"11434:11434"
     volumes:
-      - ollama-data:/root/.ollama
+ollama-data:/root/.ollama
     # Optional: GPU support
     deploy:
       resources:
         reservations:
           devices:
-            - driver: nvidia
+driver: nvidia
               count: 1
               capabilities: [gpu]
 
@@ -276,10 +264,10 @@ spec:
         app: ollama
     spec:
       containers:
-      - name: ollama
+name: ollama
         image: ollama/ollama:latest
         ports:
-        - containerPort: 11434
+containerPort: 11434
         resources:
           requests:
             nvidia.com/gpu: 1
@@ -338,8 +326,6 @@ class CustomLocalProvider implements AiProviderInterface
             throw new \RuntimeException('Custom provider error: ' . $e->getMessage(), 0, $e);
         }
     }
-    
-    // Implement other interface methods...
     public function chat(array $messages, array $options = []): array { /* ... */ }
     public function streamChat(array $messages, callable $callback, array $options = []): void { /* ... */ }
     public function generateImage(string $prompt, array $options = []): array { /* ... */ }
@@ -361,7 +347,6 @@ return match ($driver) {
     'openai' => new OpenAIProvider($providerConfig),
     'ollama' => new OllamaProvider($providerConfig),
     'custom-local' => new CustomLocalProvider($providerConfig),
-    // ...
 };
 ```
 
@@ -382,31 +367,27 @@ Then add to `config/ai.php`:
 ### Connection Issues
 
 **Error: "Connection refused"**
-
-- Ensure Ollama server is running: `ollama serve`
-- Check `OLLAMA_BASE_URL` in `.env`
-- Verify firewall allows port 11434
+Ensure Ollama server is running: `ollama serve`
+Check `OLLAMA_BASE_URL` in `.env`
+Verify firewall allows port 11434
 
 **Error: "Model not found"**
-
-- Pull the model: `ollama pull llama3`
-- Check available models: `ollama list`
-- Verify `OLLAMA_MODEL` in `.env`
+Pull the model: `ollama pull llama3`
+Check available models: `ollama list`
+Verify `OLLAMA_MODEL` in `.env`
 
 ### Performance Issues
 
 **Slow responses:**
-
-- Use smaller models (e.g., `llama3:8b` instead of `llama3:70b`)
-- Enable GPU support in Ollama
-- Run Ollama on a dedicated server
-- Increase timeout in `OllamaProvider.php`
+Use smaller models (e.g., `llama3:8b` instead of `llama3:70b`)
+Enable GPU support in Ollama
+Run Ollama on a dedicated server
+Increase timeout in `OllamaProvider.php`
 
 **Out of memory:**
-
-- Use smaller models
-- Increase server RAM
-- Use cloud providers for large models
+Use smaller models
+Increase server RAM
+Use cloud providers for large models
 
 ### Production Tips
 
@@ -417,15 +398,14 @@ Then add to `config/ai.php`:
 5. **Cache responses** for common queries
 
 ## Resources
-
-- [Ollama Documentation](https://github.com/ollama/ollama)
-- [Ollama Model Library](https://ollama.ai/library)
-- [Laravel AI Orchestrator GitHub](https://github.com/sumeetghimire/Laravel-AI-Orchestrator)
+[Ollama Documentation](https://github.com/ollama/ollama)
+[Ollama Model Library](https://ollama.ai/library)
+[Laravel AI Orchestrator GitHub](https://github.com/sumeetghimire/Laravel-AI-Orchestrator)
 
 ## Support
 
 For issues or questions:
-- Open an issue on GitHub
-- Check the main README.md
-- Review Ollama documentation
+Open an issue on GitHub
+Check the main README.md
+Review Ollama documentation
 

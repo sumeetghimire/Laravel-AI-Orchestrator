@@ -13,15 +13,11 @@ class DashboardController extends Controller
     {
         $period = $request->get('period', 'today');
         $userId = $request->get('user_id');
-
-        // Build query
         $query = AiLog::query();
 
         if ($userId) {
             $query->where('user_id', $userId);
         }
-
-        // Apply date filter
         switch ($period) {
             case 'today':
                 $query->whereDate('created_at', Carbon::today());
@@ -39,18 +35,13 @@ class DashboardController extends Controller
                 ]);
                 break;
             case 'all':
-                // No date filter
                 break;
         }
-
-        // Get statistics
         $totalCost = (float) $query->sum('cost');
         $totalTokens = (int) $query->sum('tokens');
         $totalRequests = $query->count();
         $cachedRequests = $query->where('cached', true)->count();
         $avgDuration = (float) $query->avg('duration');
-
-        // Get provider breakdown
         $providerStats = AiLog::query()
             ->when($period === 'today', fn($q) => $q->whereDate('created_at', Carbon::today()))
             ->when($period === 'week', fn($q) => $q->whereBetween('created_at', [
@@ -65,13 +56,9 @@ class DashboardController extends Controller
             ->selectRaw('provider, COUNT(*) as count, SUM(cost) as total_cost, SUM(tokens) as total_tokens')
             ->groupBy('provider')
             ->get();
-
-        // Get recent logs
         $recentLogs = $query->orderBy('created_at', 'desc')
             ->limit(50)
             ->get();
-
-        // Get daily stats for chart
         $dailyStats = AiLog::query()
             ->when($period !== 'all', function ($q) use ($period) {
                 if ($period === 'today') {

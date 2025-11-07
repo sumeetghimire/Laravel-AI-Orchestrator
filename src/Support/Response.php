@@ -31,6 +31,10 @@ class Response
         $this->input = $input;
         $this->type = $type;
         $this->options = $options;
+        $fallback = $this->orchestrator->getFallbackProvider();
+        if ($fallback) {
+            $this->fallbackProvider = $fallback;
+        }
     }
 
     /**
@@ -125,8 +129,6 @@ class Response
     {
         $result = $this->execute();
         $audio = $result['audio'] ?? '';
-        
-        // If it's a base64 string and no output_path was specified, save to default location
         if (!empty($audio) && !isset($this->options['output_path']) && base64_decode($audio, true) !== false) {
             $audio = $this->saveAudioToStorage($audio);
         }
@@ -144,19 +146,13 @@ class Response
         
         $disk = $audioConfig['storage_disk'] ?? 'public';
         $basePath = $audioConfig['storage_path'] ?? 'audio';
-        
-        // Create user-specific subfolder if enabled
         $path = $basePath;
         if ($audioConfig['user_subfolder'] ?? true) {
             $userId = $this->orchestrator->getUserId();
             $path = $basePath . '/' . ($userId ?? 'guest');
         }
-        
-        // Generate unique filename
         $filename = 'tts_' . time() . '_' . uniqid() . '.mp3';
         $fullPath = $path . '/' . $filename;
-        
-        // Decode base64 and save
         $decoded = base64_decode($audioData);
         Storage::disk($disk)->put($fullPath, $decoded);
         
@@ -174,8 +170,6 @@ class Response
         if ($this->expectedSchema) {
             return $this->parseStructuredOutput($content);
         }
-
-        // Try to parse as JSON
         $decoded = json_decode($content, true);
         if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
             return $decoded;
@@ -205,8 +199,6 @@ class Response
     {
         $provider = $this->getProvider();
         $messages = $this->prepareMessages();
-
-        // Convert string prompt to messages array for streaming
         if (is_string($messages)) {
             $messages = [
                 ['role' => 'user', 'content' => $messages]
@@ -239,8 +231,6 @@ class Response
      */
     public function queue(): self
     {
-        // This would dispatch a job - for now, just return self
-        // In a full implementation, you'd dispatch a job here
         return $this;
     }
 
@@ -249,12 +239,13 @@ class Response
      */
     protected function execute(): array
     {
-        // Check cache
         if ($this->cacheTtl !== null) {
             $cacheKey = $this->getCacheKey();
             $cached = Cache::get($cacheKey);
             if ($cached !== null) {
                 $this->isCached = true;
+                Cache::add('ai:metrics.cache_hits', 0);
+                Cache::increment('ai:metrics.cache_hits');
                 return $cached;
             }
         }
@@ -271,8 +262,6 @@ class Response
                 'speech' => ['audio' => $provider->textToSpeech($messages, $this->options)],
                 default => $provider->complete($messages, $this->options),
             };
-
-            // Calculate cost (only for text operations with tokens)
             $cost = 0.0;
             if ($this->type === 'prompt' || $this->type === 'chat') {
                 $cost = $provider->calculateCost(
@@ -280,28 +269,28 @@ class Response
                     $result['output_tokens'] ?? 0
                 );
             } elseif ($this->type === 'embedding') {
-                // Embedding cost calculation (simplified)
-                $cost = ($result['usage']['total_tokens'] ?? 0) / 1000000 * 0.0001; // Approximate
+                $cost = ($result['usage']['total_tokens'] ?? 0) / 1000000 * 0.0001;
             } elseif ($this->type === 'image') {
-                // Image generation cost (DALL-E pricing)
-                $cost = 0.040; // Approximate per image
+                $cost = 0.040;
             } elseif ($this->type === 'transcribe' || $this->type === 'speech') {
-                // Audio cost (Whisper/TTS pricing)
-                $cost = 0.006; // Approximate per minute
+                $cost = 0.006;
             }
-
-            // Log the request
             $this->logRequest($provider, $messages, $result, $cost);
-
-            // Store in cache
             if ($this->cacheTtl !== null) {
-                Cache::put($this->getCacheKey(), $result, $this->cacheTtl);
+                $cacheKey = $this->getCacheKey();
+                Cache::put($cacheKey, $result, $this->cacheTtl);
+                Cache::add('ai:metrics.cache_stores', 0);
+                Cache::increment('ai:metrics.cache_stores');
+                $keys = Cache::get('ai:cache.keys', []);
+                if (!in_array($cacheKey, $keys, true)) {
+                    $keys[] = $cacheKey;
+                    Cache::forever('ai:cache.keys', $keys);
+                }
             }
 
             $this->result = $result;
             return $result;
         } catch (\Exception $e) {
-            // Try fallback if available
             if ($this->fallbackProvider && $this->providerName !== $this->fallbackProvider) {
                 Log::warning("AI request failed, trying fallback: " . $e->getMessage());
                 $this->providerName = $this->fallbackProvider;
@@ -333,8 +322,6 @@ class Response
         if ($this->type === 'image' || $this->type === 'embedding' || $this->type === 'transcribe' || $this->type === 'speech') {
             return $this->input;
         }
-
-        // For prompt type with expected schema, add JSON format instruction
         if ($this->expectedSchema) {
             $schemaDescription = $this->formatSchemaDescription($this->expectedSchema);
             $this->input .= "\n\nPlease respond with valid JSON matching this schema: " . json_encode($this->expectedSchema);
@@ -360,18 +347,14 @@ class Response
      */
     protected function parseStructuredOutput(string $content): array
     {
-        // Try to extract JSON from content
         $json = $this->extractJson($content);
 
         if ($json === null) {
-            // If no valid JSON found and we have a schema, retry with correction
             if ($this->expectedSchema) {
                 return $this->retryWithCorrection();
             }
             return ['content' => $content];
         }
-
-        // Validate against schema
         if ($this->expectedSchema) {
             $this->validateSchema($json, $this->expectedSchema);
         }
@@ -384,15 +367,12 @@ class Response
      */
     protected function extractJson(string $content): ?array
     {
-        // Try to find JSON in the content
         if (preg_match('/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/s', $content, $matches)) {
             $decoded = json_decode($matches[0], true);
             if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
                 return $decoded;
             }
         }
-
-        // Try direct JSON decode
         $decoded = json_decode($content, true);
         if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
             return $decoded;

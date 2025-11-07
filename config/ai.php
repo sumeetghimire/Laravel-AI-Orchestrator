@@ -2,6 +2,7 @@
 
 return [
     'default' => env('AI_DRIVER', 'openai'),
+    'fallback' => env('AI_FALLBACK_DRIVER'),
     'providers' => [
         'openai' => [
             'driver' => 'openai',

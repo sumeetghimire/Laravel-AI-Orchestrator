@@ -33,7 +33,6 @@ class GeminiProvider implements AiProviderInterface
     public function chat(array $messages, array $options = []): array
     {
         try {
-            // Convert messages format for Gemini
             $geminiMessages = [];
             foreach ($messages as $message) {
                 if ($message['role'] !== 'system') {
@@ -118,7 +117,6 @@ class GeminiProvider implements AiProviderInterface
 
     public function calculateCost(int $inputTokens, int $outputTokens): float
     {
-        // Pricing for Gemini models (as of 2024)
         $pricing = [
             'gemini-1.5-pro' => ['input' => 0.00125, 'output' => 0.005],
             'gemini-1.5-flash' => ['input' => 0.000075, 'output' => 0.0003],

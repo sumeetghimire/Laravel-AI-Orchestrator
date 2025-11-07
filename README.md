@@ -3,7 +3,7 @@
   
   # Laravel AI Orchestrator
   
-  > A unified, driver-based AI orchestration layer for Laravel — supporting OpenAI, Anthropic, Gemini, Ollama, HuggingFace, and more.
+  -> A unified, driver-based AI orchestration layer for Laravel — supporting OpenAI, Anthropic, Gemini, Ollama, HuggingFace, and more.
 </div>
 
 ## Overview
@@ -12,20 +12,19 @@
 It handles provider differences, caching, cost tracking, fallback logic, and structured output — so you can focus on building intelligent Laravel apps faster.
 
 ### Highlights
-
-- Plug & play support for OpenAI, Anthropic, Gemini, Ollama, HuggingFace, Replicate  
-- Self-hosted/local model support — run AI models on your own infrastructure  
-- Fallback & chaining — automatically retry or switch models  
-- Smart caching to reduce token usage & cost  
-- Token + cost tracking per user & provider  
-- Streaming support for chat responses  
-- Multi-modal support — images, audio, embeddings  
-- Unified API for chat, completion, embeddings, image generation, and audio  
-- Structured Output (JSON / typed responses)  
-- Extendable driver system — add your own AI provider  
-- User attribution + quota tracking  
-- Zero-cost local models — perfect for development and privacy-sensitive applications  
-- Built-in logging, events, and monitoring hooks
+Plug & play support for OpenAI, Anthropic, Gemini, Ollama, HuggingFace, Replicate  
+Self-hosted/local model support — run AI models on your own infrastructure  
+Fallback & chaining — automatically retry or switch models  
+Smart caching to reduce token usage & cost  
+Token + cost tracking per user & provider  
+Streaming support for chat responses  
+Multi-modal support — images, audio, embeddings  
+Unified API for chat, completion, embeddings, image generation, and audio  
+Structured Output (JSON / typed responses)  
+Extendable driver system — add your own AI provider  
+User attribution + quota tracking  
+Zero-cost local models — perfect for development and privacy-sensitive applications  
+Built-in logging, events, and monitoring hooks
 
 ## Installation
 
@@ -59,7 +58,6 @@ return [
             'api_key' => env('OPENAI_API_KEY'),
             'model' => env('OPENAI_MODEL', 'gpt-4o'),
         ],
-        // ... other providers
     ],
     'cache' => [
         'enabled' => env('AI_CACHE_ENABLED', true),
@@ -109,17 +107,14 @@ $response = Ai::chat([
 ### Fallback Chain
 
 ```php
-// Try cloud first, fallback to local
 $response = Ai::prompt("Explain quantum computing")
-    ->using('openai:gpt-4o')
-    ->fallback('ollama:llama3')
-    ->toText();
-
-// Or local first, cloud fallback
+->using('openai:gpt-4o')
+->fallback('ollama:llama3')
+->toText();
 $response = Ai::prompt("Quick response")
-    ->using('ollama:llama3')
-    ->fallback('openai:gpt-4o')
-    ->toText();
+->using('ollama:llama3')
+->fallback('openai:gpt-4o')
+->toText();
 ```
 
 ## Structured Output (Typed Responses)
@@ -153,13 +148,13 @@ $article = Ai::prompt("Summarize this blog post", [
 
 ```php
 $response = Ai::prompt("Extract contact info from this text")
-    ->using('openai:gpt-4o')
-    ->expectSchema([
+->using('openai:gpt-4o')
+->expectSchema([
         'name' => 'string',
         'email' => 'string',
         'phone' => 'string',
     ])
-    ->toStructured();
+->toStructured();
 ```
 
 The orchestrator automatically ensures the model returns valid JSON, retries on errors, and validates schema.
@@ -168,12 +163,12 @@ The orchestrator automatically ensures the model returns valid JSON, retries on 
 
 ```php
 $validated = Ai::prompt("Generate product data")
-    ->expectSchema([
+->expectSchema([
         'name' => 'required|string',
         'price' => 'required|numeric|min:0',
         'stock' => 'integer',
     ])
-    ->validate();
+->validate();
 ```
 
 Invalid JSON? The orchestrator retries with a correction prompt automatically.
@@ -182,15 +177,15 @@ Invalid JSON? The orchestrator retries with a correction prompt automatically.
 
 ```php
 $response = Ai::prompt("Summarize Laravel's request lifecycle")
-    ->cache(3600)
-    ->toText();
+->cache(3600)
+->toText();
 ```
 
 ## Streaming Responses
 
 ```php
 Ai::prompt("Generate step-by-step Laravel CI/CD guide")
-    ->stream(function ($chunk) {
+->stream(function ($chunk) {
         echo $chunk;
     });
 ```
@@ -201,10 +196,8 @@ Ai::prompt("Generate step-by-step Laravel CI/CD guide")
 
 ```php
 $images = Ai::image("A futuristic cityscape at sunset")
-    ->using('openai')
-    ->toImages();
-
-// Returns array of image URLs
+->using('openai')
+->toImages();
 foreach ($images as $imageUrl) {
     echo "<img src='{$imageUrl}'>";
 }
@@ -213,12 +206,9 @@ foreach ($images as $imageUrl) {
 ### Embeddings (Vector Search)
 
 ```php
-// Generate embeddings for semantic search
 $embeddings = Ai::embed("Laravel is a PHP framework")
-    ->using('openai')
-    ->toEmbeddings();
-
-// Or multiple texts at once
+->using('openai')
+->toEmbeddings();
 $embeddings = Ai::embed([
     "Laravel framework",
     "PHP development",
@@ -230,8 +220,8 @@ $embeddings = Ai::embed([
 
 ```php
 $transcription = Ai::transcribe(storage_path('audio/recording.mp3'))
-    ->using('openai')
-    ->toText();
+->using('openai')
+->toText();
 
 echo $transcription; // "The transcribed text..."
 ```
@@ -239,35 +229,27 @@ echo $transcription; // "The transcribed text..."
 ### Text-to-Speech
 
 ```php
-// Auto-save to configured storage (user-specific folders)
 $audioPath = Ai::speak("Hello, this is a test")
-    ->using('openai')
-    ->toAudio();
-
-// Get public URL
+->using('openai')
+->toAudio();
 $url = Storage::disk('public')->url($audioPath);
-
-// Custom path
 $audioPath = Ai::speak("Custom message")
-    ->using('openai')
-    ->withOptions(['output_path' => 'custom/audio/output.mp3'])
-    ->toAudio();
-
-// Or get as base64 (no storage)
+->using('openai')
+->withOptions(['output_path' => 'custom/audio/output.mp3'])
+->toAudio();
 $audioBase64 = Ai::speak("Hello world")
-    ->using('openai')
-    ->withOptions(['output_path' => null])
-    ->toAudio();
+->using('openai')
+->withOptions(['output_path' => null])
+->toAudio();
 ```
 
 **Audio Storage Configuration:**
 
 The package automatically saves audio files to configured storage locations with user-specific folders. You can customize:
-
-- Storage disk (public, local, S3, etc.)
-- Storage path structure
-- User-specific folders
-- Automatic cleanup
+Storage disk (public, local, S3, etc.)
+Storage path structure
+User-specific folders
+Automatic cleanup
 
 See **[AUDIO_STORAGE.md](AUDIO_STORAGE.md)** for complete audio storage configuration, examples, and best practices.
 
@@ -285,12 +267,11 @@ AI_AUDIO_CLEANUP_DAYS=30          # Cleanup after X days
 **Laravel AI Orchestrator** fully supports self-hosted and local AI models, giving you complete control over your AI infrastructure, privacy, and costs.
 
 ### Why Use Self-Hosted Models?
-
-- **Zero API costs** — Run models locally without per-request fees
-- **Data privacy** — Keep sensitive data on your infrastructure
-- **Offline capability** — Work without internet connectivity
-- **Custom models** — Use fine-tuned or specialized models
-- **Development flexibility** — Test without API rate limits
+**Zero API costs** — Run models locally without per-request fees
+**Data privacy** — Keep sensitive data on your infrastructure
+**Offline capability** — Work without internet connectivity
+**Custom models** — Use fine-tuned or specialized models
+**Development flexibility** — Test without API rate limits
 
 ### Ollama (Recommended for Local Models)
 
@@ -336,30 +317,24 @@ curl -fsSL https://ollama.ai/install.sh | sh
 #### Usage
 
 ```php
-// Use Ollama as default
 $response = Ai::prompt("Explain Laravel's service container")
-    ->using('ollama')
-    ->toText();
-
-// Or specify model inline
+->using('ollama')
+->toText();
 $response = Ai::prompt("Write Python code")
-    ->using('ollama:codellama')
-    ->toText();
-
-// Use local model as fallback
+->using('ollama:codellama')
+->toText();
 $response = Ai::prompt("Complex task")
-    ->using('openai')           // Try cloud first
-    ->fallback('ollama:llama3')  // Fallback to local if cloud fails
-    ->toText();
+->using('openai')           // Try cloud first
+->fallback('ollama:llama3')  // Fallback to local if cloud fails
+->toText();
 ```
 
 #### Supported Ollama Models
-
-- `llama3` / `llama3:8b` / `llama3:70b`
-- `mistral` / `mistral:7b`
-- `codellama` / `codellama:13b`
-- `neural-chat` / `starling-lm`
-- And [100+ more models](https://ollama.ai/library)
+`llama3` / `llama3:8b` / `llama3:70b`
+`mistral` / `mistral:7b`
+`codellama` / `codellama:13b`
+`neural-chat` / `starling-lm`
+And [100+ more models](https://ollama.ai/library)
 
 ### Custom Self-Hosted Models
 
@@ -375,10 +350,7 @@ class CustomSelfHostedProvider implements AiProviderInterface
     public function __construct(array $config)
     {
         $this->baseUrl = $config['base_url'] ?? 'http://localhost:8080';
-        // Initialize your HTTP client
     }
-    
-    // Implement interface methods...
 }
 ```
 
@@ -399,16 +371,13 @@ Then register it in `config/ai.php`:
 Perfect for production: use cloud models for heavy tasks, local models for development and fallbacks.
 
 ```php
-// Production: Use cloud with local fallback
 $response = Ai::prompt("User query")
-    ->using('openai')
-    ->fallback('ollama:llama3')
-    ->toText();
-
-// Development: Use local only
+->using('openai')
+->fallback('ollama:llama3')
+->toText();
 $response = Ai::prompt("Development test")
-    ->using('ollama')
-    ->toText();
+->using('ollama')
+->toText();
 ```
 
 ### Cost Comparison
@@ -445,26 +414,26 @@ services:
   ollama:
     image: ollama/ollama
     ports:
-      - "11434:11434"
+"11434:11434"
     volumes:
-      - ollama-data:/root/.ollama
+ollama-data:/root/.ollama
 ```
 
 ## Token & Cost Tracking
 
 ```php
 $total = Ai::usage()
-    ->provider('openai')
-    ->today()
-    ->sum('cost');
+->provider('openai')
+->today()
+->sum('cost');
 ```
 
 Or per user:
 
 ```php
 $totalTokens = Ai::usage()
-    ->user(auth()->id())
-    ->sum('tokens');
+->user(auth()->id())
+->sum('tokens');
 ```
 
 ## Database Schema
@@ -484,19 +453,13 @@ $totalTokens = Ai::usage()
 | `cached` | boolean | Cached result flag |
 | `duration` | float | Time taken |
 | `created_at` | timestamp | — |
-
----
+--
 
 ## Integration Examples
 
 ```php
-// Blade / Controller
 $response = Ai::prompt("Suggest SEO titles for: $post->title")->toText();
-
-// Jobs / Queues
 Ai::prompt("Analyze user logs")->queue()->dispatchLater();
-
-// API Endpoint
 Route::post('/ai', fn(Request $req) =>
     Ai::prompt($req->input('prompt'))    ->json()
 );
@@ -511,7 +474,6 @@ use Sumeetghimire\AiOrchestrator\Drivers\AiProviderInterface;
 
 class CustomProvider implements AiProviderInterface
 {
-    // Implement required methods
 }
 ```
 
@@ -559,14 +521,13 @@ AI_DASHBOARD_MIDDLEWARE=auth,admin.check
 ```
 
 ### Dashboard Features
-
-- Usage statistics (cost, tokens, requests)
-- Provider breakdown
-- Request logs with full details
-- Filtering by period (today/week/month/all)
-- User-specific analytics
-- Real-time cost tracking
-- Cached vs non-cached requests
+Usage statistics (cost, tokens, requests)
+Provider breakdown
+Request logs with full details
+Filtering by period (today/week/month/all)
+User-specific analytics
+Real-time cost tracking
+Cached vs non-cached requests
 
 See `DASHBOARD_SECURITY.md` for detailed security configuration.
 
@@ -589,20 +550,71 @@ ollama pull llama3
 **Usage:**
 ```php
 $response = Ai::prompt("Explain Laravel")
-    ->using('ollama:llama3')
-    ->toText();
+->using('ollama:llama3')
+->toText();
 ```
 
 See **[SELF_HOSTED_GUIDE.md](SELF_HOSTED_GUIDE.md)** for complete setup instructions, deployment options, and troubleshooting.
 
-## Future Roadmap
+## Artisan Commands
 
-- [ ] Auto model selector (route task to best model)  
-- [ ] UI dashboard for usage + cost analytics  
-- [ ] Native Laravel Nova & Filament integration  
-- [ ] Plugin system for tools (browser, filesystem)  
-- [ ] Context-aware memory management  
-- [ ] Typed DTO generation from structured output
+### ai:test
+
+Run a diagnostic prompt against your configured providers and verify fallback behaviour. When you execute the command you can pass a prompt with `--prompt` or enter one interactively. If the default provider fails the command automatically tries the fallback provider and reports the outcome, duration, and model output.
+
+```
+php artisan ai:test
+php artisan ai:test --prompt="Write a Laravel tip"
+```
+
+### ai:status
+
+Display a quick health summary that includes the default and fallback providers, cache settings, cache hit metrics, and the timestamp of the most recent successful response.
+
+```
+php artisan ai:status
+```
+
+### ai:config
+
+Print the effective configuration so you can confirm provider selection, cache TTL values, logging driver, and dashboard settings without digging through configuration files.
+
+```
+php artisan ai:config
+```
+
+### ai:usage
+
+Aggregate token and cost usage by provider using the `ai_logs` table. You can scope the report to a single provider with `--provider=openai`.
+
+```
+php artisan ai:usage
+php artisan ai:usage --provider=openai
+```
+
+### ai:providers
+
+List every configured provider, the model or endpoint it targets, the inferred type (cloud text, local, multimodal), and whether required configuration such as API keys is present.
+
+```
+php artisan ai:providers
+```
+
+### ai:flush-cache
+
+Clear every cached AI response stored by the orchestrator and reset cache metrics. Useful during testing or after switching providers, models, or prompts.
+
+```
+php artisan ai:flush-cache
+```
+
+## Future Roadmap
+[ ] Auto model selector (route task to best model)  
+[ ] UI dashboard for usage + cost analytics  
+[ ] Native Laravel Nova & Filament integration  
+[ ] Plugin system for tools (browser, filesystem)  
+[ ] Context-aware memory management  
+[ ] Typed DTO generation from structured output
 
 ## Contributing
 

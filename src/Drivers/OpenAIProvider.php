@@ -104,14 +104,12 @@ class OpenAIProvider implements AiProviderInterface
             $buffer = '';
             
             while (!$body->eof()) {
-                $chunk = $body->read(8192); // Read in chunks
+                $chunk = $body->read(8192);
                 if ($chunk === '') {
                     break;
                 }
                 
                 $buffer .= $chunk;
-                
-                // Process complete lines
                 while (($pos = strpos($buffer, "\n")) !== false) {
                     $line = substr($buffer, 0, $pos);
                     $buffer = substr($buffer, $pos + 1);
@@ -130,8 +128,6 @@ class OpenAIProvider implements AiProviderInterface
                     }
                 }
             }
-            
-            // Process any remaining buffer
             if (!empty($buffer)) {
                 $line = trim($buffer);
                 if (!empty($line) && $line !== 'data: [DONE]' && strpos($line, 'data: ') === 0) {
@@ -154,7 +150,6 @@ class OpenAIProvider implements AiProviderInterface
 
     public function calculateCost(int $inputTokens, int $outputTokens): float
     {
-        // Pricing for GPT-4o (as of 2024)
         $pricing = [
             'gpt-4o' => ['input' => 0.0025, 'output' => 0.010],
             'gpt-4-turbo' => ['input' => 0.01, 'output' => 0.03],
@@ -221,35 +216,24 @@ class OpenAIProvider implements AiProviderInterface
     public function transcribeAudio(string $audioPath, array $options = []): array
     {
         try {
-            // Check if file exists
             if (!file_exists($audioPath)) {
-                // Try with absolute path if relative path provided
                 $absolutePath = realpath($audioPath);
                 if (!$absolutePath || !file_exists($absolutePath)) {
                     throw new \InvalidArgumentException("Audio file not found: {$audioPath}");
                 }
                 $audioPath = $absolutePath;
             }
-
-            // Verify file is readable
             if (!is_readable($audioPath)) {
                 throw new \InvalidArgumentException("Audio file is not readable: {$audioPath}");
             }
-
-            // Check file size
             $fileSize = filesize($audioPath);
             if ($fileSize === 0 || $fileSize === false) {
                 throw new \InvalidArgumentException("Audio file is empty: {$audioPath}");
             }
-
-            // Read file contents - Guzzle multipart handles streams automatically
-            // We'll pass the file path directly and let Guzzle handle the stream
             $fileContents = file_get_contents($audioPath);
             if ($fileContents === false) {
                 throw new \InvalidArgumentException("Could not read audio file: {$audioPath}");
             }
-
-            // Create a temporary stream from the file contents
             $stream = fopen('php://temp', 'r+');
             fwrite($stream, $fileContents);
             rewind($stream);
@@ -272,13 +256,10 @@ class OpenAIProvider implements AiProviderInterface
                         ],
                     ],
                 ]);
-
-                // Close the temporary stream
                 if (is_resource($stream)) {
                     fclose($stream);
                 }
             } catch (\Exception $e) {
-                // Ensure stream is closed on error
                 if (is_resource($stream)) {
                     fclose($stream);
                 }
@@ -310,27 +291,20 @@ class OpenAIProvider implements AiProviderInterface
             ]);
 
             $audioContent = $response->getBody()->getContents();
-            
-            // Save audio to file if output path provided
             if (isset($options['output_path'])) {
-                // Support both absolute paths and Laravel storage paths
                 if (strpos($options['output_path'], storage_path()) === 0 || 
                     strpos($options['output_path'], '/') === 0) {
-                    // Absolute path
                     $directory = dirname($options['output_path']);
                     if (!is_dir($directory)) {
                         mkdir($directory, 0755, true);
                     }
                     file_put_contents($options['output_path'], $audioContent);
                 } else {
-                    // Laravel storage path (e.g., 'audio/file.mp3')
                     $disk = $options['disk'] ?? 'public';
                     Storage::disk($disk)->put($options['output_path'], $audioContent);
                 }
                 return $options['output_path'];
             }
-
-            // Return audio data as base64
             return base64_encode($audioContent);
         } catch (RequestException $e) {
             throw new \RuntimeException('OpenAI API error: ' . $e->getMessage(), 0, $e);

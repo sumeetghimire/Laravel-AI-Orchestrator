@@ -18,7 +18,6 @@ class DriverFactory
      */
     public function make(string $providerName): AiProviderInterface
     {
-        // Parse provider:model format
         [$provider, $model] = $this->parseProviderName($providerName);
 
         if (!isset($this->config['providers'][$provider])) {
@@ -27,8 +26,6 @@ class DriverFactory
 
         $providerConfig = $this->config['providers'][$provider];
         $driver = $providerConfig['driver'] ?? $provider;
-
-        // Override model if specified
         if ($model) {
             $providerConfig['model'] = $model;
         }

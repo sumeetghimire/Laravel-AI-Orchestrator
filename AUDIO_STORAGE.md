@@ -5,12 +5,11 @@ This guide explains how to configure audio file storage for the Laravel AI Orche
 ## Overview
 
 The package supports flexible audio storage configuration for text-to-speech (TTS) generated audio files. You can customize:
-
-- Storage disk (local, public, S3, etc.)
-- Storage path structure
-- User-specific folders
-- Automatic cleanup
-- Public URL paths
+Storage disk (local, public, S3, etc.)
+Storage path structure
+User-specific folders
+Automatic cleanup
+Public URL paths
 
 ## Configuration
 
@@ -69,11 +68,7 @@ storage/app/public/audio/
 **Usage:**
 ```php
 $audioPath = Ai::speak("Hello world")->toAudio();
-// Returns: "audio/1/tts_1234567890_abc123.mp3"
-
-// Get public URL
 $url = Storage::disk('public')->url($audioPath);
-// Returns: "http://your-app.com/storage/audio/1/tts_1234567890_abc123.mp3"
 ```
 
 ### Option 2: Private Storage
@@ -88,9 +83,6 @@ AI_AUDIO_PATH=audio
 **Usage:**
 ```php
 $audioPath = Ai::speak("Hello world")->toAudio();
-// Returns: "audio/1/tts_1234567890_abc123.mp3"
-
-// Get download URL (requires authentication)
 $url = Storage::disk('local')->url($audioPath);
 ```
 
@@ -118,20 +110,17 @@ $url = Storage::disk('s3')->url($audioPath);
 Specify a custom output path when generating audio.
 
 ```php
-// Absolute path
 $audioPath = Ai::speak("Hello world")
-    ->withOptions([
+->withOptions([
         'output_path' => storage_path('app/custom/audio/output.mp3'),
     ])
-    ->toAudio();
-
-// Laravel storage path
+->toAudio();
 $audioPath = Ai::speak("Hello world")
-    ->withOptions([
+->withOptions([
         'output_path' => 'custom/audio/output.mp3',
         'disk' => 'public',
     ])
-    ->toAudio();
+->toAudio();
 ```
 
 ## User-Specific Folders
@@ -202,53 +191,42 @@ foreach ($files as $file) {
 ```php
 use Sumeetghimire\AiOrchestrator\Facades\Ai;
 use Illuminate\Support\Facades\Storage;
-
-// Generate audio (auto-saved to configured storage)
 $audioPath = Ai::speak("Hello, this is a test")
-    ->using('openai')
-    ->toAudio();
-
-// Get public URL
+->using('openai')
+->toAudio();
 $url = Storage::disk('public')->url($audioPath);
 ```
 
 ### Example 2: Custom Path
 
 ```php
-// Save to custom location
 $audioPath = Ai::speak("Custom message")
-    ->using('openai')
-    ->withOptions([
+->using('openai')
+->withOptions([
         'output_path' => storage_path('app/public/audio/custom/output.mp3'),
     ])
-    ->toAudio();
+->toAudio();
 ```
 
 ### Example 3: User-Specific Storage
 
 ```php
-// Audio will be saved to: audio/{user_id}/tts_*.mp3
 $audioPath = Ai::speak("User-specific audio")
-    ->using('openai')
-    ->toAudio();
-
-// Returns: "audio/123/tts_1234567890_abc123.mp3"
+->using('openai')
+->toAudio();
 ```
 
 ### Example 4: Get Base64 (No Storage)
 
 ```php
-// Get base64 without saving
 $base64 = Ai::speak("Quick test")
-    ->using('openai')
-    ->withOptions([
+->using('openai')
+->withOptions([
         'output_path' => null, // Don't save
     ])
-    ->toAudio();
-
-// Use base64 in your response
+->toAudio();
 return response(base64_decode($base64))
-    ->header('Content-Type', 'audio/mpeg');
+->header('Content-Type', 'audio/mpeg');
 ```
 
 ### Example 5: Download Audio File
@@ -268,24 +246,24 @@ Route::get('/audio/{path}', function ($path) {
 ## Best Practices
 
 1. **Use Public Storage for User-Generated Content**
-   - Files are accessible via URLs
-   - Good for temporary audio files
+Files are accessible via URLs
+Good for temporary audio files
 
 2. **Use Private Storage for Sensitive Content**
-   - Files require authentication to access
-   - Better for sensitive or private audio
+Files require authentication to access
+Better for sensitive or private audio
 
 3. **Use Cloud Storage for Scalability**
-   - Offload storage to S3, etc.
-   - Better for production environments
+Offload storage to S3, etc.
+Better for production environments
 
 4. **Enable Cleanup for Temporary Files**
-   - Prevents storage bloat
-   - Automatically removes old files
+Prevents storage bloat
+Automatically removes old files
 
 5. **Use User-Specific Folders**
-   - Better organization
-   - Easier to manage per-user files
+Better organization
+Easier to manage per-user files
 
 ## Troubleshooting
 
@@ -310,7 +288,7 @@ Check `config/filesystems.php` for disk configuration.
 ### Base64 Returned Instead of Path
 
 If no `output_path` is specified and storage fails, base64 is returned. Check:
-- Storage disk permissions
-- Storage path configuration
-- User ID availability (if `user_subfolder` is enabled)
+Storage disk permissions
+Storage path configuration
+User ID availability (if `user_subfolder` is enabled)
 

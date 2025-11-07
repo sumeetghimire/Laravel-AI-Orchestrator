@@ -26,7 +26,6 @@ class AiOrchestrator
      */
     public function prompt(string $prompt, array $variables = []): Response
     {
-        // Replace variables in prompt
         $resolvedPrompt = $this->resolveVariables($prompt, $variables);
 
         return new Response(
@@ -134,6 +133,20 @@ class AiOrchestrator
     public function getDefaultProvider(): string
     {
         return $this->config['default'] ?? 'openai';
+    }
+
+    /**
+     * Get configured fallback provider name.
+     */
+    public function getFallbackProvider(): ?string
+    {
+        $fallback = $this->config['fallback'] ?? null;
+
+        if (is_string($fallback) && trim($fallback) !== '') {
+            return $fallback;
+        }
+
+        return null;
     }
 
     /**

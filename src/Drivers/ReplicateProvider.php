@@ -34,7 +34,6 @@ class ReplicateProvider implements AiProviderInterface
     public function chat(array $messages, array $options = []): array
     {
         try {
-            // Convert messages to prompt format for Replicate
             $prompt = '';
             foreach ($messages as $message) {
                 if ($message['role'] === 'user') {
@@ -44,8 +43,6 @@ class ReplicateProvider implements AiProviderInterface
                 }
             }
             $prompt .= "Assistant: ";
-
-            // Create prediction
             $response = $this->client->post('predictions', [
                 'json' => array_merge([
                     'version' => $this->config['version'] ?? null,
@@ -57,8 +54,6 @@ class ReplicateProvider implements AiProviderInterface
 
             $prediction = json_decode($response->getBody()->getContents(), true);
             $predictionId = $prediction['id'];
-
-            // Poll for completion
             $maxAttempts = 60;
             $attempt = 0;
             while ($attempt < $maxAttempts) {
@@ -96,8 +91,6 @@ class ReplicateProvider implements AiProviderInterface
 
     public function streamChat(array $messages, callable $callback, array $options = []): void
     {
-        // Replicate supports streaming via webhooks, but for simplicity
-        // we'll just return the complete response
         $result = $this->chat($messages, $options);
         $callback($result['content']);
     }
@@ -109,8 +102,7 @@ class ReplicateProvider implements AiProviderInterface
 
     public function calculateCost(int $inputTokens, int $outputTokens): float
     {
-        // Replicate pricing varies by model and compute time
-        return 0.0; // Placeholder - actual pricing depends on model
+        return 0.0;
     }
 
     public function getName(): string
@@ -121,7 +113,6 @@ class ReplicateProvider implements AiProviderInterface
     public function generateImage(string $prompt, array $options = []): array
     {
         try {
-            // Use Stable Diffusion or similar model
             $model = $options['model'] ?? 'stability-ai/stable-diffusion';
             
             $response = $this->client->post('predictions', [
@@ -135,8 +126,6 @@ class ReplicateProvider implements AiProviderInterface
 
             $prediction = json_decode($response->getBody()->getContents(), true);
             $predictionId = $prediction['id'];
-
-            // Poll for completion
             $maxAttempts = 60;
             $attempt = 0;
             while ($attempt < $maxAttempts) {

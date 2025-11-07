@@ -34,8 +34,6 @@ class HuggingFaceProvider implements AiProviderInterface
             ]);
 
             $data = json_decode($response->getBody()->getContents(), true);
-
-            // HuggingFace returns different formats depending on the model
             $content = '';
             if (isset($data[0]['generated_text'])) {
                 $content = $data[0]['generated_text'];
@@ -47,7 +45,7 @@ class HuggingFaceProvider implements AiProviderInterface
 
             return [
                 'content' => $content,
-                'input_tokens' => 0, // HuggingFace doesn't provide token counts
+                'input_tokens' => 0,
                 'output_tokens' => 0,
                 'total_tokens' => 0,
                 'model' => $this->model,
@@ -59,7 +57,6 @@ class HuggingFaceProvider implements AiProviderInterface
 
     public function chat(array $messages, array $options = []): array
     {
-        // Convert messages to prompt format
         $prompt = '';
         foreach ($messages as $message) {
             $role = $message['role'];
@@ -73,8 +70,6 @@ class HuggingFaceProvider implements AiProviderInterface
 
     public function streamChat(array $messages, callable $callback, array $options = []): void
     {
-        // HuggingFace doesn't support streaming in the same way
-        // For now, we'll just return the complete response
         $result = $this->chat($messages, $options);
         $callback($result['content']);
     }
@@ -86,9 +81,7 @@ class HuggingFaceProvider implements AiProviderInterface
 
     public function calculateCost(int $inputTokens, int $outputTokens): float
     {
-        // HuggingFace pricing varies by model and endpoint
-        // For inference API, it's typically pay-per-use
-        return 0.0; // Placeholder - actual pricing depends on model
+        return 0.0;
     }
 
     public function getName(): string

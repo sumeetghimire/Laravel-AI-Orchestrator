@@ -31,9 +31,9 @@ First, create a middleware or use existing one:
 ```php
 // In routes/web.php or your route service provider
 Route::prefix('ai-orchestrator')
-    ->middleware(['auth', 'admin']) // Add your admin middleware
-    ->name('ai-orchestrator.')
-    ->group(function () {
+->middleware(['auth', 'admin']) // Add your admin middleware
+->name('ai-orchestrator.')
+->group(function () {
         // Dashboard routes will be registered here
     });
 ```
@@ -143,17 +143,16 @@ AI_DASHBOARD_PREFIX=admin/ai
 ```
 
 This will:
-- Require authentication
-- Require admin role
-- Be accessible at `/admin/ai/dashboard`
+Require authentication
+Require admin role
+Be accessible at `/admin/ai/dashboard`
 
 ## Security Checklist
-
-- [ ] Dashboard is disabled by default
-- [ ] Middleware protection is configured
-- [ ] Authentication is required
-- [ ] Role/permission checks are in place
-- [ ] Dashboard is disabled in production (or properly secured)
-- [ ] URL prefix is changed from default
-- [ ] Sensitive data is not exposed in views
+[ ] Dashboard is disabled by default
+[ ] Middleware protection is configured
+[ ] Authentication is required
+[ ] Role/permission checks are in place
+[ ] Dashboard is disabled in production (or properly secured)
+[ ] URL prefix is changed from default
+[ ] Sensitive data is not exposed in views
 

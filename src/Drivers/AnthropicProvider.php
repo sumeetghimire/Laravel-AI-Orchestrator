@@ -35,7 +35,6 @@ class AnthropicProvider implements AiProviderInterface
     public function chat(array $messages, array $options = []): array
     {
         try {
-            // Convert messages format for Anthropic
             $systemMessage = '';
             $anthropicMessages = [];
 
@@ -137,7 +136,6 @@ class AnthropicProvider implements AiProviderInterface
 
     public function calculateCost(int $inputTokens, int $outputTokens): float
     {
-        // Pricing for Claude models (as of 2024)
         $pricing = [
             'claude-3-opus-20240229' => ['input' => 0.015, 'output' => 0.075],
             'claude-3-sonnet-20240229' => ['input' => 0.003, 'output' => 0.015],

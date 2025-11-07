@@ -22,7 +22,7 @@ class OllamaProvider implements AiProviderInterface
             'headers' => [
                 'Content-Type' => 'application/json',
             ],
-            'timeout' => 300, // Longer timeout for local models
+            'timeout' => 300,
         ]);
     }
 
@@ -48,7 +48,7 @@ class OllamaProvider implements AiProviderInterface
 
             return [
                 'content' => $data['message']['content'] ?? '',
-                'input_tokens' => 0, // Ollama doesn't always provide token counts
+                'input_tokens' => 0,
                 'output_tokens' => 0,
                 'total_tokens' => 0,
                 'model' => $data['model'] ?? $this->model,
@@ -94,7 +94,6 @@ class OllamaProvider implements AiProviderInterface
 
     public function calculateCost(int $inputTokens, int $outputTokens): float
     {
-        // Ollama is free (local models)
         return 0.0;
     }
 
