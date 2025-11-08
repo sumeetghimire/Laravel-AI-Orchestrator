@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\JsonResponse;
 use InvalidArgumentException;
 use RuntimeException;
+use Sumeetghimire\AiOrchestrator\Support\MemoryStore;
 
 class Response
 {
@@ -24,6 +25,10 @@ class Response
     protected array $options = [];
     protected bool $isCached = false;
     protected ?array $result = null;
+    protected mixed $rawInput;
+    protected ?string $memorySessionKey = null;
+    protected array $memoryOptions = [];
+    protected MemoryStore $memoryStore;
 
     public function __construct(AiOrchestrator $orchestrator, mixed $input, string $type = 'prompt', array $options = [])
     {
@@ -31,6 +36,8 @@ class Response
         $this->input = $input;
         $this->type = $type;
         $this->options = $options;
+        $this->rawInput = $input;
+        $this->memoryStore = new MemoryStore();
         $fallback = $this->orchestrator->getFallbackProvider();
         if ($fallback) {
             $this->fallbackProvider = $fallback;
@@ -79,6 +86,16 @@ class Response
     public function expectSchema(array $schema): self
     {
         return $this->expect($schema);
+    }
+
+    /**
+     * Attach conversational memory session.
+     */
+    public function withMemory(string $sessionKey, array $options = []): self
+    {
+        $this->memorySessionKey = $sessionKey;
+        $this->memoryOptions = $options;
+        return $this;
     }
 
     /**
@@ -288,6 +305,8 @@ class Response
                 }
             }
 
+            $this->recordMemory($result);
+
             $this->result = $result;
             return $result;
         } catch (\Exception $e) {
@@ -316,7 +335,14 @@ class Response
     protected function prepareMessages(): array|string
     {
         if ($this->type === 'chat') {
-            return $this->input;
+            $messages = $this->input;
+            if ($this->isMemoryEnabled()) {
+                $history = $this->memoryStore->history($this->memorySessionKey);
+                if (!empty($history)) {
+                    $messages = array_merge($history, $messages);
+                }
+            }
+            return $messages;
         }
 
         if ($this->type === 'image' || $this->type === 'embedding' || $this->type === 'transcribe' || $this->type === 'speech') {
@@ -325,6 +351,16 @@ class Response
         if ($this->expectedSchema) {
             $schemaDescription = $this->formatSchemaDescription($this->expectedSchema);
             $this->input .= "\n\nPlease respond with valid JSON matching this schema: " . json_encode($this->expectedSchema);
+        }
+
+        if ($this->isMemoryEnabled()) {
+            $history = $this->memoryStore->history($this->memorySessionKey);
+            if (!empty($history)) {
+                $context = collect($history)->map(function (array $entry) {
+                    return strtoupper($entry['role']) . ': ' . $entry['content'];
+                })->implode("\n");
+                $this->input = "Context from earlier conversation:\n{$context}\n\nCurrent request:\n" . $this->input;
+            }
         }
 
         return $this->input;
@@ -477,6 +513,72 @@ class Response
         } catch (\Exception $e) {
             Log::error("Failed to log AI request: " . $e->getMessage());
         }
+    }
+
+    protected function isMemoryEnabled(): bool
+    {
+        return $this->memorySessionKey !== null && $this->memoryStore->enabled();
+    }
+
+    protected function recordMemory(array $result): void
+    {
+        if (!$this->isMemoryEnabled()) {
+            return;
+        }
+
+        if (!in_array($this->type, ['prompt', 'chat'], true)) {
+            return;
+        }
+
+        $userContent = $this->extractUserContent();
+        $assistantContent = $this->extractAssistantContent($result);
+
+        if ($userContent !== null) {
+            $this->memoryStore->append($this->memorySessionKey, 'user', $userContent);
+        }
+
+        if ($assistantContent !== null) {
+            $this->memoryStore->append($this->memorySessionKey, 'assistant', $assistantContent);
+        }
+    }
+
+    protected function extractUserContent(): ?string
+    {
+        if ($this->type === 'chat' && is_array($this->rawInput)) {
+            $messages = array_reverse($this->rawInput);
+            foreach ($messages as $message) {
+                if (isset($message['role']) && $message['role'] === 'user') {
+                    $content = $message['content'] ?? null;
+                    return is_string($content) ? $content : (is_null($content) ? null : json_encode($content));
+                }
+            }
+            if (isset($messages[0]['content'])) {
+                $content = $messages[0]['content'];
+                return is_string($content) ? $content : json_encode($content);
+            }
+            return null;
+        }
+
+        if (is_string($this->rawInput)) {
+            return $this->rawInput;
+        }
+
+        return null;
+    }
+
+    protected function extractAssistantContent(array $result): ?string
+    {
+        $content = $result['content'] ?? $result['response'] ?? null;
+
+        if (is_array($content)) {
+            return json_encode($content);
+        }
+
+        if (is_string($content)) {
+            return $content;
+        }
+
+        return null;
     }
 }
 

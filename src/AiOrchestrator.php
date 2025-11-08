@@ -8,6 +8,7 @@ use Sumeetghimire\AiOrchestrator\Drivers\AiProviderInterface;
 use Sumeetghimire\AiOrchestrator\Drivers\DriverFactory;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Sumeetghimire\AiOrchestrator\Support\MemorySession;
 
 class AiOrchestrator
 {
@@ -105,6 +106,11 @@ class AiOrchestrator
     public function usage(): UsageTracker
     {
         return new UsageTracker();
+    }
+
+    public function remember(string $sessionKey, array $options = []): MemorySession
+    {
+        return new MemorySession($this, $sessionKey, $options);
     }
 
     /**

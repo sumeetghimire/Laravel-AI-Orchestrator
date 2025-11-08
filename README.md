@@ -181,6 +181,20 @@ $response = Ai::prompt("Summarize Laravel's request lifecycle")
 ->toText();
 ```
 
+## Memory & Contextual Recall
+
+```php
+Ai::remember('support-session-42')
+    ->prompt('What did I decide about cache TTL earlier?')
+    ->toText();
+```
+
+- Persist previous prompts and responses under a session key
+- Rehydrate history automatically for both `prompt()` and `chat()` calls
+- Store histories in the `ai_memories` table with configurable limits
+- Disable or tune via `AI_MEMORY_ENABLED` and `AI_MEMORY_MAX_MESSAGES`
+- Perfect for conversational experiences, contextual agents, and long-running tasks
+
 ## Streaming Responses
 
 ```php

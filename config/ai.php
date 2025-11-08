@@ -48,6 +48,10 @@ return [
         'middleware' => env('AI_DASHBOARD_MIDDLEWARE', 'web'), // Middleware to protect dashboard
         'prefix' => env('AI_DASHBOARD_PREFIX', 'ai-orchestrator'), // URL prefix
     ],
+    'memory' => [
+        'enabled' => env('AI_MEMORY_ENABLED', true),
+        'max_messages' => env('AI_MEMORY_MAX_MESSAGES', 50),
+    ],
     'audio' => [
         'storage_disk' => env('AI_AUDIO_DISK', 'public'), // Storage disk (public, local, s3, etc.)
         'storage_path' => env('AI_AUDIO_PATH', 'audio'), // Base path within storage disk
