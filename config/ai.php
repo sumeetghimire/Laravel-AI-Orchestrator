@@ -50,6 +50,8 @@ return [
     ],
     'memory' => [
         'enabled' => env('AI_MEMORY_ENABLED', true),
+        'driver' => env('AI_MEMORY_DRIVER', 'database'), // 'database' or 'cache'
+        'cache_store' => env('AI_MEMORY_CACHE_STORE'), // optional cache store name
         'max_messages' => env('AI_MEMORY_MAX_MESSAGES', 50),
     ],
     'audio' => [

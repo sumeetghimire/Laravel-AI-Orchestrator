@@ -191,9 +191,17 @@ Ai::remember('support-session-42')
 
 - Persist previous prompts and responses under a session key
 - Rehydrate history automatically for both `prompt()` and `chat()` calls
-- Store histories in the `ai_memories` table with configurable limits
+- Store histories in the `ai_memories` table or switch to cache-backed storage
 - Disable or tune via `AI_MEMORY_ENABLED` and `AI_MEMORY_MAX_MESSAGES`
 - Perfect for conversational experiences, contextual agents, and long-running tasks
+
+```env
+# Memory configuration
+AI_MEMORY_ENABLED=true
+AI_MEMORY_DRIVER=database   # database | cache
+AI_MEMORY_CACHE_STORE=redis # optional, used when driver=cache
+AI_MEMORY_MAX_MESSAGES=50
+```
 
 ## Streaming Responses
 
