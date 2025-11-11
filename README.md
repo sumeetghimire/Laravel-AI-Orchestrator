@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/sumeetghimire/Laravel-AI-Orchestrator/main/logo.png" alt="Laravel AI Orchestrator" width="200">
+  <img src="https://raw.githubusercontent.com/sumeetghimire/Laravel-AI-Orchestrator/refs/heads/main/public/images/logo.png" alt="Laravel AI Orchestrator" width="200">
   
   # Laravel AI Orchestrator
   
@@ -58,7 +58,13 @@ return [
             'api_key' => env('OPENAI_API_KEY'),
             'model' => env('OPENAI_MODEL', 'gpt-4o'),
         ],
+        'custom' => [
+            'driver' => \App\Ai\Providers\CustomProvider::class,
+            'api_key' => env('CUSTOM_API_KEY'),
+            'model' => 'custom-model',
+        ],
     ],
+    'fallback' => env('AI_FALLBACK_DRIVER', 'anthropic,gemini'),
     'cache' => [
         'enabled' => env('AI_CACHE_ENABLED', true),
         'ttl' => env('AI_CACHE_TTL', 3600),
@@ -66,6 +72,10 @@ return [
     'logging' => [
         'enabled' => env('AI_LOGGING_ENABLED', true),
         'driver' => env('AI_LOGGING_DRIVER', 'database'),
+    ],
+    'models' => [
+        'log' => env('AI_LOG_MODEL', \Sumeetghimire\AiOrchestrator\Models\AiLog::class),
+        'memory' => env('AI_MEMORY_MODEL', \Sumeetghimire\AiOrchestrator\Models\AiMemory::class),
     ],
 ];
 ```
@@ -78,10 +88,101 @@ AI_DRIVER=openai
 OPENAI_API_KEY=your-api-key-here
 ANTHROPIC_API_KEY=your-api-key-here
 GEMINI_API_KEY=your-api-key-here
+CUSTOM_API_KEY=demo-key
+AI_FALLBACK_DRIVER=anthropic,gemini
 
 # Self-hosted (Ollama)
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=llama3
+```
+
+Need to use UUIDs or a custom table? Point `AI_LOG_MODEL` or `AI_MEMORY_MODEL` at your own Eloquent model classes. The orchestrator will resolve them at runtime as long as they extend `Illuminate\Database\Eloquent\Model`.
+
+### Custom Providers
+
+Have your own provider or an experimental API? Implement `Sumeetghimire\AiOrchestrator\Drivers\AiProviderInterface` and point the configuration at your class. The orchestrator will instantiate it automatically.
+
+```php
+// app/Ai/Providers/CustomProvider.php
+namespace App\Ai\Providers;
+
+use GuzzleHttp\Client;
+use Sumeetghimire\AiOrchestrator\Drivers\AiProviderInterface;
+
+class CustomProvider implements AiProviderInterface
+{
+    protected Client $client;
+    protected array $config;
+
+    public function __construct(array $config)
+    {
+        $this->config = $config;
+        $this->client = new Client([
+            'base_uri' => $config['base_uri'] ?? 'https://example-ai-provider.test/api/',
+            'headers' => [
+                'Authorization' => 'Bearer ' . ($config['api_key'] ?? ''),
+                'Content-Type' => 'application/json',
+            ],
+        ]);
+    }
+
+    public function complete(string $prompt, array $options = []): array
+    {
+        $response = $this->client->post('chat/completions', [
+            'json' => [
+                'model' => $this->getModel(),
+                'messages' => [
+                    ['role' => 'user', 'content' => $prompt],
+                ],
+            ],
+        ]);
+
+        $data = json_decode($response->getBody()->getContents(), true);
+
+        return [
+            'content' => $data['choices'][0]['message']['content'] ?? '',
+            'usage' => $data['usage'] ?? [],
+        ];
+    }
+
+    public function chat(array $messages, array $options = []): array
+    {
+        return $this->complete(end($messages)['content'] ?? '', $options);
+    }
+
+    public function streamChat(array $messages, callable $callback, array $options = []): void
+    {
+        $callback($this->chat($messages, $options)['content'] ?? '');
+    }
+
+    public function generateImage(string $prompt, array $options = []): array { throw new \RuntimeException('Not supported'); }
+    public function embedText(string|array $text, array $options = []): array { /* ... */ }
+    public function transcribeAudio(string $audioPath, array $options = []): array { throw new \RuntimeException('Not supported'); }
+    public function textToSpeech(string $text, array $options = []): string { throw new \RuntimeException('Not supported'); }
+    public function getModel(): string { return $this->config['model'] ?? 'custom-model'; }
+    public function calculateCost(int $inputTokens, int $outputTokens): float { return 0.0; }
+    public function getName(): string { return $this->config['name'] ?? 'custom'; }
+}
+```
+
+Then register it in `config/ai.php`:
+
+```php
+'providers' => [
+    'custom' => [
+        'driver' => \App\Ai\Providers\CustomProvider::class,
+        'api_key' => env('CUSTOM_API_KEY'),
+        'model' => 'custom-model',
+    ],
+],
+```
+
+If you prefer, you can set `driver` directly to the fully-qualified class name. Either way, once configured you can call it like any other provider:
+
+```php
+$response = Ai::prompt('Explain vector databases')
+    ->using('custom')
+    ->toText();
 ```
 
 ## Basic Usage
@@ -106,15 +207,30 @@ $response = Ai::chat([
 
 ### Fallback Chain
 
+Fallbacks now support full provider queues. The orchestrator will try each provider in order until one succeeds, capturing the attempt history along the way.
+
 ```php
-$response = Ai::prompt("Explain quantum computing")
-->using('openai:gpt-4o')
-->fallback('ollama:llama3')
-->toText();
-$response = Ai::prompt("Quick response")
-->using('ollama:llama3')
-->fallback('openai:gpt-4o')
-->toText();
+$builder = Ai::prompt("Explain quantum computing in simple terms")
+    ->using('gemini')
+    ->fallback(['huggingface', 'anthropic']);
+
+$response = $builder->toText();
+
+$resolvedProvider = $builder->resolvedProvider();   // e.g. 'anthropic'
+$attempts = $builder->providerAttempts();          // status + errors for every provider
+```
+
+To configure global fallbacks, use a comma-separated list (or an array in `config/ai.php`):
+
+```env
+AI_FALLBACK_DRIVER=gemini,anthropic
+```
+
+```php
+'fallback' => [
+    'gemini',
+    'anthropic',
+],
 ```
 
 ## Structured Output (Typed Responses)

@@ -4,7 +4,7 @@ namespace Sumeetghimire\AiOrchestrator\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Sumeetghimire\AiOrchestrator\Facades\Ai;
-use Sumeetghimire\AiOrchestrator\Models\AiLog;
+use Sumeetghimire\AiOrchestrator\Support\ModelResolver;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -13,7 +13,8 @@ class DashboardController extends Controller
     {
         $period = $request->get('period', 'today');
         $userId = $request->get('user_id');
-        $query = AiLog::query();
+        $logModel = ModelResolver::log();
+        $query = $logModel::query();
 
         if ($userId) {
             $query->where('user_id', $userId);
@@ -42,7 +43,7 @@ class DashboardController extends Controller
         $totalRequests = $query->count();
         $cachedRequests = $query->where('cached', true)->count();
         $avgDuration = (float) $query->avg('duration');
-        $providerStats = AiLog::query()
+        $providerStats = $logModel::query()
             ->when($period === 'today', fn($q) => $q->whereDate('created_at', Carbon::today()))
             ->when($period === 'week', fn($q) => $q->whereBetween('created_at', [
                 Carbon::now()->startOfWeek(),
@@ -59,7 +60,7 @@ class DashboardController extends Controller
         $recentLogs = $query->orderBy('created_at', 'desc')
             ->limit(50)
             ->get();
-        $dailyStats = AiLog::query()
+        $dailyStats = $logModel::query()
             ->when($period !== 'all', function ($q) use ($period) {
                 if ($period === 'today') {
                     $q->whereDate('created_at', Carbon::today());
@@ -97,7 +98,8 @@ class DashboardController extends Controller
 
     public function logs(Request $request)
     {
-        $logs = AiLog::query()
+        $logModel = ModelResolver::log();
+        $logs = $logModel::query()
             ->when($request->get('provider'), fn($q, $provider) => $q->where('provider', $provider))
             ->when($request->get('user_id'), fn($q, $userId) => $q->where('user_id', $userId))
             ->when($request->get('cached') !== null, fn($q) => $q->where('cached', $request->get('cached')))

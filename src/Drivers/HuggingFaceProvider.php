@@ -16,7 +16,7 @@ class HuggingFaceProvider implements AiProviderInterface
         $this->config = $config;
         $this->model = $config['model'] ?? 'meta-llama/Llama-2-7b-chat-hf';
         $this->client = new Client([
-            'base_uri' => 'https://api-inference.huggingface.co/',
+            'base_uri' => $config['base_uri'] ?? 'https://router.huggingface.co/',
             'headers' => [
                 'Authorization' => 'Bearer ' . $config['api_key'],
                 'Content-Type' => 'application/json',
@@ -27,9 +27,10 @@ class HuggingFaceProvider implements AiProviderInterface
     public function complete(string $prompt, array $options = []): array
     {
         try {
-            $response = $this->client->post("models/{$this->model}", [
+            $response = $this->client->post("hf-inference/models/{$this->model}:text-generation", [
                 'json' => array_merge([
                     'inputs' => $prompt,
+                    'parameters' => $options,
                 ], $options),
             ]);
 
@@ -101,12 +102,13 @@ class HuggingFaceProvider implements AiProviderInterface
             $embeddings = [];
             
             foreach ($input as $item) {
-                $response = $this->client->post("models/sentence-transformers/all-MiniLM-L6-v2", [
+                $response = $this->client->post('hf-inference/models/sentence-transformers/all-MiniLM-L6-v2:embedding', [
                     'json' => ['inputs' => $item],
                 ]);
                 
                 $data = json_decode($response->getBody()->getContents(), true);
-                $embeddings[] = is_array($data) ? $data : [];
+                $vector = $data['data'][0]['embedding'] ?? $data ?? [];
+                $embeddings[] = is_array($vector) ? $vector : [];
             }
 
             return [

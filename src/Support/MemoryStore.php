@@ -4,17 +4,18 @@ namespace Sumeetghimire\AiOrchestrator\Support;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
-use Sumeetghimire\AiOrchestrator\Models\AiMemory;
 
 class MemoryStore
 {
     protected string $driver;
     protected ?string $cacheStore;
+    protected string $modelClass;
 
     public function __construct()
     {
         $this->driver = strtolower((string) Config::get('ai.memory.driver', 'database'));
         $this->cacheStore = Config::get('ai.memory.cache_store');
+        $this->modelClass = ModelResolver::memory();
     }
 
     public function enabled(): bool
@@ -41,11 +42,13 @@ class MemoryStore
                 ->toArray();
         }
 
-        return AiMemory::query()
+        $model = $this->modelClass;
+
+        return $model::query()
             ->where('session_key', $sessionKey)
             ->orderBy('id')
             ->get(['role', 'content'])
-            ->map(fn (AiMemory $memory) => [
+            ->map(fn ($memory) => [
                 'role' => $memory->role,
                 'content' => $memory->content,
             ])
@@ -70,7 +73,9 @@ class MemoryStore
             return;
         }
 
-        AiMemory::create([
+        $model = $this->modelClass;
+
+        $model::create([
             'session_key' => $sessionKey,
             'role' => $role,
             'content' => $content,
@@ -94,12 +99,14 @@ class MemoryStore
             return;
         }
 
-        $excess = AiMemory::where('session_key', $sessionKey)->count() - $max;
+        $model = $this->modelClass;
+
+        $excess = $model::where('session_key', $sessionKey)->count() - $max;
         if ($excess <= 0) {
             return;
         }
 
-        AiMemory::where('session_key', $sessionKey)
+        $model::where('session_key', $sessionKey)
             ->orderBy('id')
             ->limit($excess)
             ->delete();

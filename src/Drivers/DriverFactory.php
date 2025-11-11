@@ -30,6 +30,20 @@ class DriverFactory
             $providerConfig['model'] = $model;
         }
 
+        $customClass = $providerConfig['class'] ?? null;
+
+        if (is_string($customClass) &&
+            class_exists($customClass) &&
+            is_subclass_of($customClass, AiProviderInterface::class)) {
+            return new $customClass($providerConfig);
+        }
+
+        if (is_string($driver) &&
+            class_exists($driver) &&
+            is_subclass_of($driver, AiProviderInterface::class)) {
+            return new $driver($providerConfig);
+        }
+
         return match ($driver) {
             'openai' => new OpenAIProvider($providerConfig),
             'anthropic' => new AnthropicProvider($providerConfig),

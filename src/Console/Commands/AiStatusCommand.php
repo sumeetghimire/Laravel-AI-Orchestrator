@@ -6,7 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
-use Sumeetghimire\AiOrchestrator\Models\AiLog;
+use Sumeetghimire\AiOrchestrator\Support\ModelResolver;
 
 class AiStatusCommand extends Command
 {
@@ -33,7 +33,8 @@ class AiStatusCommand extends Command
         $cacheEnabled = Config::get('ai.cache.enabled') ? 'Enabled' : 'Disabled';
         $cacheTtl = Config::get('ai.cache.ttl');
 
-        $lastLog = AiLog::latest('created_at')->first();
+        $logModel = ModelResolver::log();
+        $lastLog = $logModel::query()->latest('created_at')->first();
         $lastSuccess = $lastLog
             ? Carbon::parse($lastLog->created_at)->diffForHumans()
             : 'No successful requests yet';

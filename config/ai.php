@@ -2,7 +2,7 @@
 
 return [
     'default' => env('AI_DRIVER', 'openai'),
-    'fallback' => env('AI_FALLBACK_DRIVER'),
+    'fallback' => env('AI_FALLBACK_DRIVER'), // string or comma-separated list of fallback providers
     'providers' => [
         'openai' => [
             'driver' => 'openai',
@@ -42,6 +42,10 @@ return [
     'logging' => [
         'enabled' => env('AI_LOGGING_ENABLED', true),
         'driver' => env('AI_LOGGING_DRIVER', 'database'), // 'database' or 'file'
+    ],
+    'models' => [
+        'log' => env('AI_LOG_MODEL', \Sumeetghimire\AiOrchestrator\Models\AiLog::class),
+        'memory' => env('AI_MEMORY_MODEL', \Sumeetghimire\AiOrchestrator\Models\AiMemory::class),
     ],
     'dashboard' => [
         'enabled' => env('AI_DASHBOARD_ENABLED', false), // Disabled by default for security

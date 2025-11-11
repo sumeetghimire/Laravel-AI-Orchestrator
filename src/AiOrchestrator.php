@@ -142,17 +142,46 @@ class AiOrchestrator
     }
 
     /**
-     * Get configured fallback provider name.
+     * Get configured fallback provider names.
+     *
+     * @return array<int, string>
      */
-    public function getFallbackProvider(): ?string
+    public function getFallbackProviders(): array
     {
         $fallback = $this->config['fallback'] ?? null;
 
-        if (is_string($fallback) && trim($fallback) !== '') {
-            return $fallback;
+        if ($fallback === null) {
+            return [];
         }
 
-        return null;
+        if (is_string($fallback)) {
+            $fallback = str_contains($fallback, ',')
+                ? explode(',', $fallback)
+                : [$fallback];
+        }
+
+        if (!is_array($fallback)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(function ($provider) {
+            if (!is_string($provider)) {
+                return null;
+            }
+
+            $provider = trim($provider);
+
+            return $provider !== '' ? $provider : null;
+        }, $fallback)));
+    }
+
+    /**
+     * @deprecated Use getFallbackProviders() instead.
+     */
+    public function getFallbackProvider(): ?string
+    {
+        $providers = $this->getFallbackProviders();
+        return $providers[0] ?? null;
     }
 
     /**

@@ -4,14 +4,13 @@ namespace Sumeetghimire\AiOrchestrator\Support;
 
 use Sumeetghimire\AiOrchestrator\AiOrchestrator;
 use Sumeetghimire\AiOrchestrator\Drivers\AiProviderInterface;
-use Sumeetghimire\AiOrchestrator\Models\AiLog;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\JsonResponse;
 use InvalidArgumentException;
 use RuntimeException;
-use Sumeetghimire\AiOrchestrator\Support\MemoryStore;
+use Sumeetghimire\AiOrchestrator\Support\ModelResolver;
 
 class Response
 {
@@ -19,7 +18,7 @@ class Response
     protected mixed $input;
     protected string $type;
     protected ?string $providerName = null;
-    protected ?string $fallbackProvider = null;
+    protected array $fallbackProviders = [];
     protected ?int $cacheTtl = null;
     protected ?array $expectedSchema = null;
     protected array $options = [];
@@ -29,6 +28,9 @@ class Response
     protected ?string $memorySessionKey = null;
     protected array $memoryOptions = [];
     protected MemoryStore $memoryStore;
+    protected string $logModel;
+    protected array $providerAttempts = [];
+    protected ?string $resolvedProvider = null;
 
     public function __construct(AiOrchestrator $orchestrator, mixed $input, string $type = 'prompt', array $options = [])
     {
@@ -38,10 +40,10 @@ class Response
         $this->options = $options;
         $this->rawInput = $input;
         $this->memoryStore = new MemoryStore();
-        $fallback = $this->orchestrator->getFallbackProvider();
-        if ($fallback) {
-            $this->fallbackProvider = $fallback;
-        }
+        $this->logModel = ModelResolver::log();
+        $this->fallbackProviders = $this->normalizeFallbackProviders(
+            $this->orchestrator->getFallbackProviders()
+        );
     }
 
     /**
@@ -54,11 +56,21 @@ class Response
     }
 
     /**
-     * Set fallback provider.
+     * Set fallback provider(s).
+     *
+     * @param string|array<int, string> $providers
      */
-    public function fallback(string $provider): self
+    public function fallback(array|string $providers): self
     {
-        $this->fallbackProvider = $provider;
+        $normalized = $this->normalizeFallbackProviders($providers);
+
+        if (!empty($normalized)) {
+            $this->fallbackProviders = array_values(array_unique(array_merge(
+                $this->fallbackProviders,
+                $normalized
+            )));
+        }
+
         return $this;
     }
 
@@ -214,7 +226,6 @@ class Response
      */
     public function stream(callable $callback): void
     {
-        $provider = $this->getProvider();
         $messages = $this->prepareMessages();
         if (is_string($messages)) {
             $messages = [
@@ -222,17 +233,44 @@ class Response
             ];
         }
 
-        try {
-            $provider->streamChat($messages, $callback, $this->options);
-        } catch (\Exception $e) {
-            if ($this->fallbackProvider) {
-                $this->providerName = $this->fallbackProvider;
+        $providers = $this->buildProviderSequence();
+        $errors = [];
+        $lastException = null;
+
+        foreach ($providers as $providerName) {
+            $this->providerName = $providerName;
+
+            try {
                 $provider = $this->getProvider();
                 $provider->streamChat($messages, $callback, $this->options);
-            } else {
-                throw $e;
+
+                $this->resolvedProvider = $providerName;
+                $this->providerAttempts[] = [
+                    'provider' => $providerName,
+                    'status' => 'success',
+                    'mode' => 'stream',
+                ];
+
+                return;
+            } catch (\Exception $e) {
+                $errors[] = [
+                    'provider' => $providerName,
+                    'message' => $e->getMessage(),
+                ];
+
+                $this->providerAttempts[] = [
+                    'provider' => $providerName,
+                    'status' => 'failed',
+                    'mode' => 'stream',
+                    'error' => $e->getMessage(),
+                ];
+
+                Log::warning("AI streaming failed for {$providerName}: " . $e->getMessage());
+                $lastException = $e;
             }
         }
+
+        throw $this->buildFallbackFailureException($errors, $lastException);
     }
 
     /**
@@ -256,68 +294,68 @@ class Response
      */
     protected function execute(): array
     {
-        if ($this->cacheTtl !== null) {
-            $cacheKey = $this->getCacheKey();
-            $cached = Cache::get($cacheKey);
-            if ($cached !== null) {
-                $this->isCached = true;
-                Cache::add('ai:metrics.cache_hits', 0);
-                Cache::increment('ai:metrics.cache_hits');
-                return $cached;
-            }
-        }
-
-        $provider = $this->getProvider();
         $messages = $this->prepareMessages();
+        $providers = $this->buildProviderSequence();
+        $errors = [];
+        $lastException = null;
 
-        try {
-            $result = match ($this->type) {
-                'chat' => $provider->chat($messages, $this->options),
-                'image' => $provider->generateImage($messages, $this->options),
-                'embedding' => $provider->embedText($messages, $this->options),
-                'transcribe' => $provider->transcribeAudio($messages, $this->options),
-                'speech' => ['audio' => $provider->textToSpeech($messages, $this->options)],
-                default => $provider->complete($messages, $this->options),
-            };
-            $cost = 0.0;
-            if ($this->type === 'prompt' || $this->type === 'chat') {
-                $cost = $provider->calculateCost(
-                    $result['input_tokens'] ?? 0,
-                    $result['output_tokens'] ?? 0
-                );
-            } elseif ($this->type === 'embedding') {
-                $cost = ($result['usage']['total_tokens'] ?? 0) / 1000000 * 0.0001;
-            } elseif ($this->type === 'image') {
-                $cost = 0.040;
-            } elseif ($this->type === 'transcribe' || $this->type === 'speech') {
-                $cost = 0.006;
-            }
-            $this->logRequest($provider, $messages, $result, $cost);
+        foreach ($providers as $providerName) {
+            $this->providerName = $providerName;
+
             if ($this->cacheTtl !== null) {
                 $cacheKey = $this->getCacheKey();
-                Cache::put($cacheKey, $result, $this->cacheTtl);
-                Cache::add('ai:metrics.cache_stores', 0);
-                Cache::increment('ai:metrics.cache_stores');
-                $keys = Cache::get('ai:cache.keys', []);
-                if (!in_array($cacheKey, $keys, true)) {
-                    $keys[] = $cacheKey;
-                    Cache::forever('ai:cache.keys', $keys);
+                $cached = Cache::get($cacheKey);
+                if ($cached !== null) {
+                    $this->isCached = true;
+                    $this->resolvedProvider = $providerName;
+                    $this->result = $cached;
+
+                    $this->providerAttempts[] = [
+                        'provider' => $providerName,
+                        'status' => 'success',
+                        'cached' => true,
+                    ];
+
+                    Cache::add('ai:metrics.cache_hits', 0);
+                    Cache::increment('ai:metrics.cache_hits');
+
+                    return $cached;
                 }
             }
 
-            $this->recordMemory($result);
+            try {
+                $provider = $this->getProvider();
+                $result = $this->executeWithProvider($provider, $messages);
 
-            $this->result = $result;
-            return $result;
-        } catch (\Exception $e) {
-            if ($this->fallbackProvider && $this->providerName !== $this->fallbackProvider) {
-                Log::warning("AI request failed, trying fallback: " . $e->getMessage());
-                $this->providerName = $this->fallbackProvider;
-                return $this->execute();
+                $this->resolvedProvider = $providerName;
+                $this->providerAttempts[] = [
+                    'provider' => $providerName,
+                    'status' => 'success',
+                    'cached' => false,
+                ];
+
+                $this->result = $result;
+
+                return $result;
+            } catch (\Exception $e) {
+                $errors[] = [
+                    'provider' => $providerName,
+                    'message' => $e->getMessage(),
+                ];
+
+                $this->providerAttempts[] = [
+                    'provider' => $providerName,
+                    'status' => 'failed',
+                    'cached' => false,
+                    'error' => $e->getMessage(),
+                ];
+
+                Log::warning("AI request failed for {$providerName}: " . $e->getMessage());
+                $lastException = $e;
             }
-
-            throw $e;
         }
+
+        throw $this->buildFallbackFailureException($errors, $lastException);
     }
 
     /**
@@ -327,6 +365,56 @@ class Response
     {
         $providerName = $this->providerName ?? $this->orchestrator->getDefaultProvider();
         return $this->orchestrator->getProvider($providerName);
+    }
+
+    /**
+     * Execute the request against the given provider.
+     *
+     * @param array|string $messages
+     */
+    protected function executeWithProvider(AiProviderInterface $provider, array|string $messages): array
+    {
+        $result = match ($this->type) {
+            'chat' => $provider->chat($messages, $this->options),
+            'image' => $provider->generateImage($messages, $this->options),
+            'embedding' => $provider->embedText($messages, $this->options),
+            'transcribe' => $provider->transcribeAudio($messages, $this->options),
+            'speech' => ['audio' => $provider->textToSpeech($messages, $this->options)],
+            default => $provider->complete($messages, $this->options),
+        };
+
+        $cost = 0.0;
+        if ($this->type === 'prompt' || $this->type === 'chat') {
+            $cost = $provider->calculateCost(
+                $result['input_tokens'] ?? 0,
+                $result['output_tokens'] ?? 0
+            );
+        } elseif ($this->type === 'embedding') {
+            $cost = ($result['usage']['total_tokens'] ?? 0) / 1000000 * 0.0001;
+        } elseif ($this->type === 'image') {
+            $cost = 0.040;
+        } elseif ($this->type === 'transcribe' || $this->type === 'speech') {
+            $cost = 0.006;
+        }
+
+        $this->logRequest($provider, $messages, $result, $cost);
+
+        if ($this->cacheTtl !== null) {
+            $cacheKey = $this->getCacheKey();
+            Cache::put($cacheKey, $result, $this->cacheTtl);
+            Cache::add('ai:metrics.cache_stores', 0);
+            Cache::increment('ai:metrics.cache_stores');
+
+            $keys = Cache::get('ai:cache.keys', []);
+            if (!in_array($cacheKey, $keys, true)) {
+                $keys[] = $cacheKey;
+                Cache::forever('ai:cache.keys', $keys);
+            }
+        }
+
+        $this->recordMemory($result);
+
+        return $result;
     }
 
     /**
@@ -499,7 +587,9 @@ class Response
                 default => $result['content'] ?? '',
             };
 
-            AiLog::create([
+            $model = $this->logModel;
+
+            $model::create([
                 'user_id' => $this->orchestrator->getUserId(),
                 'provider' => $provider->getName(),
                 'model' => $provider->getModel(),
@@ -579,6 +669,108 @@ class Response
         }
 
         return null;
+    }
+
+    /**
+     * Get the provider that ultimately served the response.
+     */
+    public function resolvedProvider(): ?string
+    {
+        return $this->resolvedProvider;
+    }
+
+    /**
+     * Retrieve attempt metadata for all providers.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function providerAttempts(): array
+    {
+        return $this->providerAttempts;
+    }
+
+    /**
+     * Build the provider execution sequence.
+     *
+     * @return array<int, string>
+     */
+    protected function buildProviderSequence(): array
+    {
+        $sequence = [];
+        $primary = $this->providerName ?? $this->orchestrator->getDefaultProvider();
+
+        if ($primary !== null && trim($primary) !== '') {
+            $sequence[] = trim($primary);
+        }
+
+        foreach ($this->fallbackProviders as $fallback) {
+            if (!in_array($fallback, $sequence, true)) {
+                $sequence[] = $fallback;
+            }
+        }
+
+        return $sequence;
+    }
+
+    /**
+     * Normalise fallback provider input.
+     *
+     * @param string|array<int, mixed>|null $providers
+     * @return array<int, string>
+     */
+    protected function normalizeFallbackProviders(array|string|null $providers): array
+    {
+        if ($providers === null) {
+            return [];
+        }
+
+        if (is_string($providers)) {
+            $providers = str_contains($providers, ',')
+                ? explode(',', $providers)
+                : [$providers];
+        }
+
+        $normalized = [];
+
+        foreach ($providers as $provider) {
+            if (is_array($provider)) {
+                $normalized = array_merge($normalized, $this->normalizeFallbackProviders($provider));
+                continue;
+            }
+
+            if (!is_string($provider)) {
+                continue;
+            }
+
+            $provider = trim($provider);
+
+            if ($provider === '') {
+                continue;
+            }
+
+            $normalized[] = $provider;
+        }
+
+        return array_values(array_unique($normalized));
+    }
+
+    /**
+     * Build a descriptive exception when all providers fail.
+     *
+     * @param array<int, array{provider:string,message:string}> $errors
+     */
+    protected function buildFallbackFailureException(array $errors, ?\Throwable $previous = null): RuntimeException
+    {
+        if (empty($errors)) {
+            return new RuntimeException('AI request failed and no providers were attempted.', 0, $previous);
+        }
+
+        $lines = ['All AI providers failed:'];
+        foreach ($errors as $error) {
+            $lines[] = sprintf('- %s: %s', $error['provider'], $error['message']);
+        }
+
+        return new RuntimeException(implode(PHP_EOL, $lines), 0, $previous);
     }
 }
 

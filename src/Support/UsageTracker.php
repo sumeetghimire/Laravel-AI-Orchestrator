@@ -2,7 +2,6 @@
 
 namespace Sumeetghimire\AiOrchestrator\Support;
 
-use Sumeetghimire\AiOrchestrator\Models\AiLog;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -14,6 +13,12 @@ class UsageTracker
     protected ?string $provider = null;
     protected ?Carbon $fromDate = null;
     protected ?Carbon $toDate = null;
+    protected string $logModel;
+
+    public function __construct()
+    {
+        $this->logModel = ModelResolver::log();
+    }
 
     /**
      * Filter by user.
@@ -79,7 +84,8 @@ class UsageTracker
     public function query(): Builder
     {
         /** @var Builder $query */
-        $query = AiLog::query();
+        $model = $this->logModel;
+        $query = $model::query();
 
         if ($this->userId !== null) {
             $query->where('user_id', $this->userId);

@@ -4,7 +4,7 @@ namespace Sumeetghimire\AiOrchestrator\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
-use Sumeetghimire\AiOrchestrator\Models\AiLog;
+use Sumeetghimire\AiOrchestrator\Support\ModelResolver;
 
 class AiUsageCommand extends Command
 {
@@ -14,7 +14,8 @@ class AiUsageCommand extends Command
 
     public function handle(): int
     {
-        $query = AiLog::query();
+        $logModel = ModelResolver::log();
+        $query = $logModel::query();
 
         if ($provider = $this->option('provider')) {
             $query->where('provider', $provider);
