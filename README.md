@@ -98,93 +98,6 @@ OLLAMA_MODEL=llama3
 
 Need to use UUIDs or a custom table? Point `AI_LOG_MODEL` or `AI_MEMORY_MODEL` at your own Eloquent model classes. The orchestrator will resolve them at runtime as long as they extend `Illuminate\Database\Eloquent\Model`.
 
-### Custom Providers
-
-Have your own provider or an experimental API? Implement `Sumeetghimire\AiOrchestrator\Drivers\AiProviderInterface` and point the configuration at your class. The orchestrator will instantiate it automatically.
-
-```php
-// app/Ai/Providers/CustomProvider.php
-namespace App\Ai\Providers;
-
-use GuzzleHttp\Client;
-use Sumeetghimire\AiOrchestrator\Drivers\AiProviderInterface;
-
-class CustomProvider implements AiProviderInterface
-{
-    protected Client $client;
-    protected array $config;
-
-    public function __construct(array $config)
-    {
-        $this->config = $config;
-        $this->client = new Client([
-            'base_uri' => $config['base_uri'] ?? 'https://example-ai-provider.test/api/',
-            'headers' => [
-                'Authorization' => 'Bearer ' . ($config['api_key'] ?? ''),
-                'Content-Type' => 'application/json',
-            ],
-        ]);
-    }
-
-    public function complete(string $prompt, array $options = []): array
-    {
-        $response = $this->client->post('chat/completions', [
-            'json' => [
-                'model' => $this->getModel(),
-                'messages' => [
-                    ['role' => 'user', 'content' => $prompt],
-                ],
-            ],
-        ]);
-
-        $data = json_decode($response->getBody()->getContents(), true);
-
-        return [
-            'content' => $data['choices'][0]['message']['content'] ?? '',
-            'usage' => $data['usage'] ?? [],
-        ];
-    }
-
-    public function chat(array $messages, array $options = []): array
-    {
-        return $this->complete(end($messages)['content'] ?? '', $options);
-    }
-
-    public function streamChat(array $messages, callable $callback, array $options = []): void
-    {
-        $callback($this->chat($messages, $options)['content'] ?? '');
-    }
-
-    public function generateImage(string $prompt, array $options = []): array { throw new \RuntimeException('Not supported'); }
-    public function embedText(string|array $text, array $options = []): array { /* ... */ }
-    public function transcribeAudio(string $audioPath, array $options = []): array { throw new \RuntimeException('Not supported'); }
-    public function textToSpeech(string $text, array $options = []): string { throw new \RuntimeException('Not supported'); }
-    public function getModel(): string { return $this->config['model'] ?? 'custom-model'; }
-    public function calculateCost(int $inputTokens, int $outputTokens): float { return 0.0; }
-    public function getName(): string { return $this->config['name'] ?? 'custom'; }
-}
-```
-
-Then register it in `config/ai.php`:
-
-```php
-'providers' => [
-    'custom' => [
-        'driver' => \App\Ai\Providers\CustomProvider::class,
-        'api_key' => env('CUSTOM_API_KEY'),
-        'model' => 'custom-model',
-    ],
-],
-```
-
-If you prefer, you can set `driver` directly to the fully-qualified class name. Either way, once configured you can call it like any other provider:
-
-```php
-$response = Ai::prompt('Explain vector databases')
-    ->using('custom')
-    ->toText();
-```
-
 ## Basic Usage
 
 ### Prompt Completion
@@ -603,17 +516,6 @@ Route::post('/ai', fn(Request $req) =>
 );
 ```
 
-## Creating Custom Providers
-
-You can create your own AI provider by implementing the `AiProviderInterface`:
-
-```php
-use Sumeetghimire\AiOrchestrator\Drivers\AiProviderInterface;
-
-class CustomProvider implements AiProviderInterface
-{
-}
-```
 
 ## Dashboard
 
@@ -753,6 +655,93 @@ php artisan ai:flush-cache
 [ ] Plugin system for tools (browser, filesystem)  
 [ ] Context-aware memory management  
 [ ] Typed DTO generation from structured output
+
+## Creating Custom Providers
+
+Have your own provider or an experimental API? Implement `Sumeetghimire\AiOrchestrator\Drivers\AiProviderInterface` and point the configuration at your class. The orchestrator will instantiate it automatically.
+
+```php
+// app/Ai/Providers/CustomProvider.php
+namespace App\Ai\Providers;
+
+use GuzzleHttp\Client;
+use Sumeetghimire\AiOrchestrator\Drivers\AiProviderInterface;
+
+class CustomProvider implements AiProviderInterface
+{
+    protected Client $client;
+    protected array $config;
+
+    public function __construct(array $config)
+    {
+        $this->config = $config;
+        $this->client = new Client([
+            'base_uri' => $config['base_uri'] ?? 'https://example-ai-provider.test/api/',
+            'headers' => [
+                'Authorization' => 'Bearer ' . ($config['api_key'] ?? ''),
+                'Content-Type' => 'application/json',
+            ],
+        ]);
+    }
+
+    public function complete(string $prompt, array $options = []): array
+    {
+        $response = $this->client->post('chat/completions', [
+            'json' => [
+                'model' => $this->getModel(),
+                'messages' => [
+                    ['role' => 'user', 'content' => $prompt],
+                ],
+            ],
+        ]);
+
+        $data = json_decode($response->getBody()->getContents(), true);
+
+        return [
+            'content' => $data['choices'][0]['message']['content'] ?? '',
+            'usage' => $data['usage'] ?? [],
+        ];
+    }
+
+    public function chat(array $messages, array $options = []): array
+    {
+        return $this->complete(end($messages)['content'] ?? '', $options);
+    }
+
+    public function streamChat(array $messages, callable $callback, array $options = []): void
+    {
+        $callback($this->chat($messages, $options)['content'] ?? '');
+    }
+
+    public function generateImage(string $prompt, array $options = []): array { throw new \RuntimeException('Not supported'); }
+    public function embedText(string|array $text, array $options = []): array { /* ... */ }
+    public function transcribeAudio(string $audioPath, array $options = []): array { throw new \RuntimeException('Not supported'); }
+    public function textToSpeech(string $text, array $options = []): string { throw new \RuntimeException('Not supported'); }
+    public function getModel(): string { return $this->config['model'] ?? 'custom-model'; }
+    public function calculateCost(int $inputTokens, int $outputTokens): float { return 0.0; }
+    public function getName(): string { return $this->config['name'] ?? 'custom'; }
+}
+```
+
+Then register it in `config/ai.php`:
+
+```php
+'providers' => [
+    'custom' => [
+        'driver' => \App\Ai\Providers\CustomProvider::class,
+        'api_key' => env('CUSTOM_API_KEY'),
+        'model' => 'custom-model',
+    ],
+],
+```
+
+If you prefer, you can set `driver` directly to the fully-qualified class name. Either way, once configured you can call it like any other provider:
+
+```php
+$response = Ai::prompt('Explain vector databases')
+    ->using('custom')
+    ->toText();
+```
 
 ## Contributing
 
