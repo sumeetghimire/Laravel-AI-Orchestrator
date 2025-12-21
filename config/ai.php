@@ -46,6 +46,7 @@ return [
     'models' => [
         'log' => env('AI_LOG_MODEL', \Sumeetghimire\AiOrchestrator\Models\AiLog::class),
         'memory' => env('AI_MEMORY_MODEL', \Sumeetghimire\AiOrchestrator\Models\AiMemory::class),
+        'trace' => env('AI_TRACE_MODEL', \Sumeetghimire\AiOrchestrator\Models\AiTrace::class),
     ],
     'dashboard' => [
         'enabled' => env('AI_DASHBOARD_ENABLED', false), // Disabled by default for security
@@ -65,6 +66,11 @@ return [
         'user_subfolder' => env('AI_AUDIO_USER_SUBFOLDER', true), // Store in user-specific folders
         'auto_cleanup' => env('AI_AUDIO_AUTO_CLEANUP', false), // Auto cleanup old files
         'cleanup_after_days' => env('AI_AUDIO_CLEANUP_DAYS', 30), // Cleanup files older than X days
+    ],
+    'tracing' => [
+        'enable_tracing' => env('AI_TRACING_ENABLED', false), // Enable AI decision tracing
+        'redact_keys' => explode(',', env('AI_TRACING_REDACT_KEYS', 'api_key,password,secret,token')), // Keys to redact from traces
+        'store_raw_output' => env('AI_TRACING_STORE_RAW_OUTPUT', true), // Store full output in traces
     ],
 ];
 

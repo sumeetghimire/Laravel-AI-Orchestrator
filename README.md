@@ -571,6 +571,35 @@ Cached vs non-cached requests
 
 See `DASHBOARD_SECURITY.md` for detailed security configuration.
 
+## AI Decision Tracing & Replay
+
+**New in v1.3.0** — Automatically record every AI call and replay any trace with different providers, models, or settings to compare results.
+
+**Features:**
+- Automatic tracing of all AI calls (zero code changes required)
+- Replay any trace with different providers/models
+- Track prompt versions and compare performance
+- Input sanitization for sensitive data
+- Full API for viewing and managing traces
+
+**Quick Start:**
+```php
+// Enable in .env
+AI_TRACING_ENABLED=true
+
+// All AI calls are automatically traced
+$response = Ai::prompt("Hello")->toText();
+
+// Replay a trace with different settings
+$response = Ai::replay($traceId)
+    ->withModel('claude-3')
+    ->withPrompt('job_matcher:v4')
+    ->run()
+    ->toText();
+```
+
+See **[TRACING.md](TRACING.md)** for complete documentation, usage examples, and production API endpoints.
+
 ## Self-Hosted Models
 
 Laravel AI Orchestrator supports self-hosted and local AI models for zero-cost, privacy-focused AI operations.

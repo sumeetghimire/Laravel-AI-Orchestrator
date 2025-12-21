@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Facade;
  * @method static \Sumeetghimire\AiOrchestrator\Support\Response transcribe(string $audioPath, array $options = [])
  * @method static \Sumeetghimire\AiOrchestrator\Support\Response speak(string $text, array $options = [])
  * @method static \Sumeetghimire\AiOrchestrator\Support\UsageTracker usage()
+ * @method static \Sumeetghimire\AiOrchestrator\Support\TraceableResponse trace()
+ * @method static \Sumeetghimire\AiOrchestrator\Support\ReplayResponse replay(string $traceId)
  *
  * @see \Sumeetghimire\AiOrchestrator\AiOrchestrator
  */

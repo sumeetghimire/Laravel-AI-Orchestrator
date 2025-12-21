@@ -31,6 +31,9 @@ class Response
     protected string $logModel;
     protected array $providerAttempts = [];
     protected ?string $resolvedProvider = null;
+    protected ?TraceManager $traceManager = null;
+    protected ?string $promptIdentifier = null;
+    protected ?string $promptVersion = null;
 
     public function __construct(AiOrchestrator $orchestrator, mixed $input, string $type = 'prompt', array $options = [])
     {
@@ -44,6 +47,11 @@ class Response
         $this->fallbackProviders = $this->normalizeFallbackProviders(
             $this->orchestrator->getFallbackProviders()
         );
+        
+        // Initialize trace manager if tracing is enabled
+        if ($this->shouldTrace()) {
+            $this->traceManager = app('ai.trace.manager');
+        }
     }
 
     /**
@@ -117,6 +125,25 @@ class Response
     {
         $this->options = array_merge($this->options, $options);
         return $this;
+    }
+
+    /**
+     * Set prompt identifier and version for tracing.
+     */
+    public function withPromptIdentifier(string $identifier, ?string $version = null): self
+    {
+        $this->promptIdentifier = $identifier;
+        $this->promptVersion = $version;
+        return $this;
+    }
+
+    /**
+     * Check if tracing should be enabled.
+     */
+    protected function shouldTrace(): bool
+    {
+        $config = $this->orchestrator->getConfig();
+        return $config['tracing']['enable_tracing'] ?? false;
     }
 
     /**
@@ -294,6 +321,15 @@ class Response
      */
     protected function execute(): array
     {
+        // Start tracing if enabled
+        if ($this->traceManager && $this->traceManager->isEnabled()) {
+            $this->traceManager->startTrace([
+                'user_id' => $this->orchestrator->getUserId(),
+                'prompt_identifier' => $this->promptIdentifier,
+                'prompt_version' => $this->promptVersion,
+            ]);
+        }
+
         $messages = $this->prepareMessages();
         $providers = $this->buildProviderSequence();
         $errors = [];
@@ -316,6 +352,20 @@ class Response
                         'cached' => true,
                     ];
 
+                    // Finalize trace for cached results
+                    if ($this->traceManager && $this->traceManager->isEnabled()) {
+                        $provider = $this->getProvider();
+                        $cost = $this->calculateCostFromResult($cached, $provider);
+                        $this->traceManager->finalizeTrace(
+                            $provider,
+                            $this->rawInput,
+                            $cached,
+                            $cost,
+                            $this->promptIdentifier,
+                            $this->promptVersion
+                        );
+                    }
+
                     Cache::add('ai:metrics.cache_hits', 0);
                     Cache::increment('ai:metrics.cache_hits');
 
@@ -336,6 +386,20 @@ class Response
 
                 $this->result = $result;
 
+                // Finalize trace if enabled
+                if ($this->traceManager && $this->traceManager->isEnabled()) {
+                    $provider = $this->getProvider();
+                    $cost = $this->calculateCostFromResult($result, $provider);
+                    $this->traceManager->finalizeTrace(
+                        $provider,
+                        $this->rawInput,
+                        $result,
+                        $cost,
+                        $this->promptIdentifier,
+                        $this->promptVersion
+                    );
+                }
+
                 return $result;
             } catch (\Exception $e) {
                 $errors[] = [
@@ -350,8 +414,31 @@ class Response
                     'error' => $e->getMessage(),
                 ];
 
+                // Record error in trace
+                if ($this->traceManager && $this->traceManager->isEnabled()) {
+                    $this->traceManager->incrementRetry();
+                    $this->traceManager->recordValidationError($e->getMessage());
+                }
+
                 Log::warning("AI request failed for {$providerName}: " . $e->getMessage());
                 $lastException = $e;
+            }
+        }
+
+        // Finalize trace even on failure
+        if ($this->traceManager && $this->traceManager->isEnabled() && $this->traceManager->getCurrentTraceId()) {
+            try {
+                $provider = $this->getProvider();
+                $this->traceManager->finalizeTrace(
+                    $provider,
+                    $this->rawInput,
+                    ['error' => $lastException?->getMessage() ?? 'Unknown error'],
+                    0.0,
+                    $this->promptIdentifier,
+                    $this->promptVersion
+                );
+            } catch (\Exception $e) {
+                // Silently fail trace finalization
             }
         }
 
@@ -475,12 +562,24 @@ class Response
 
         if ($json === null) {
             if ($this->expectedSchema) {
+                // Record schema error in trace
+                if ($this->traceManager && $this->traceManager->isEnabled()) {
+                    $this->traceManager->recordSchemaError('Failed to extract valid JSON from response');
+                }
                 return $this->retryWithCorrection();
             }
             return ['content' => $content];
         }
         if ($this->expectedSchema) {
-            $this->validateSchema($json, $this->expectedSchema);
+            try {
+                $this->validateSchema($json, $this->expectedSchema);
+            } catch (InvalidArgumentException $e) {
+                // Record schema validation error in trace
+                if ($this->traceManager && $this->traceManager->isEnabled()) {
+                    $this->traceManager->recordSchemaError($e->getMessage());
+                }
+                throw $e;
+            }
         }
 
         return $json;
@@ -771,6 +870,29 @@ class Response
         }
 
         return new RuntimeException(implode(PHP_EOL, $lines), 0, $previous);
+    }
+
+    /**
+     * Calculate cost from result array.
+     *
+     * @param array<string, mixed> $result
+     */
+    protected function calculateCostFromResult(array $result, AiProviderInterface $provider): float
+    {
+        if ($this->type === 'prompt' || $this->type === 'chat') {
+            return $provider->calculateCost(
+                $result['input_tokens'] ?? 0,
+                $result['output_tokens'] ?? 0
+            );
+        } elseif ($this->type === 'embedding') {
+            return ($result['usage']['total_tokens'] ?? 0) / 1000000 * 0.0001;
+        } elseif ($this->type === 'image') {
+            return 0.040;
+        } elseif ($this->type === 'transcribe' || $this->type === 'speech') {
+            return 0.006;
+        }
+
+        return 0.0;
     }
 }
 

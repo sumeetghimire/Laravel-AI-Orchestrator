@@ -9,6 +9,9 @@ use Sumeetghimire\AiOrchestrator\Console\Commands\AiProvidersCommand;
 use Sumeetghimire\AiOrchestrator\Console\Commands\AiStatusCommand;
 use Sumeetghimire\AiOrchestrator\Console\Commands\AiTestCommand;
 use Sumeetghimire\AiOrchestrator\Console\Commands\AiUsageCommand;
+use Sumeetghimire\AiOrchestrator\Support\TraceRepository;
+use Sumeetghimire\AiOrchestrator\Support\TraceManager;
+use Sumeetghimire\AiOrchestrator\Support\ReplayManager;
 
 class AiOrchestratorServiceProvider extends ServiceProvider
 {
@@ -24,6 +27,27 @@ class AiOrchestratorServiceProvider extends ServiceProvider
 
         $this->app->singleton('ai.orchestrator', function ($app) {
             return new AiOrchestrator($app['config']['ai']);
+        });
+
+        // Register tracing services
+        $this->app->singleton('ai.trace.repository', function ($app) {
+            return new TraceRepository();
+        });
+
+        $this->app->singleton('ai.trace.manager', function ($app) {
+            $config = $app['config']['ai']['tracing'] ?? [];
+            return new TraceManager(
+                $app->make('ai.trace.repository'),
+                $config
+            );
+        });
+
+        $this->app->singleton('ai.replay.manager', function ($app) {
+            return new ReplayManager(
+                $app->make('ai.trace.repository'),
+                $app->make('ai.orchestrator'),
+                $app->make('ai.trace.manager')
+            );
         });
     }
 

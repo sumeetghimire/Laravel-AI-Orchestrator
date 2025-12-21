@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Config;
 use InvalidArgumentException;
 use Sumeetghimire\AiOrchestrator\Models\AiLog;
 use Sumeetghimire\AiOrchestrator\Models\AiMemory;
+use Sumeetghimire\AiOrchestrator\Models\AiTrace;
 
 class ModelResolver
 {
@@ -18,6 +19,11 @@ class ModelResolver
     public static function memory(): string
     {
         return self::resolve('memory', AiMemory::class);
+    }
+
+    public static function trace(): string
+    {
+        return self::resolve('trace', AiTrace::class);
     }
 
     protected static function resolve(string $key, string $default): string

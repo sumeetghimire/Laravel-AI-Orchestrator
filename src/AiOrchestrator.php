@@ -9,6 +9,8 @@ use Sumeetghimire\AiOrchestrator\Drivers\DriverFactory;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Sumeetghimire\AiOrchestrator\Support\MemorySession;
+use Sumeetghimire\AiOrchestrator\Support\ReplayManager;
+use Sumeetghimire\AiOrchestrator\Support\TraceableResponse;
 
 class AiOrchestrator
 {
@@ -207,6 +209,27 @@ class AiOrchestrator
     public function getUserId(): ?int
     {
         return $this->userId ?? auth()->id();
+    }
+
+    /**
+     * Create a traced response builder.
+     * This is an additive API - existing methods continue to work unchanged.
+     * When tracing is enabled in config, all AI calls are automatically traced.
+     * This method provides explicit tracing control if needed.
+     */
+    public function trace(): TraceableResponse
+    {
+        return new TraceableResponse($this);
+    }
+
+    /**
+     * Replay a trace by ID.
+     * This is an additive API - existing methods continue to work unchanged.
+     */
+    public function replay(string $traceId): \Sumeetghimire\AiOrchestrator\Support\ReplayResponse
+    {
+        $replayManager = app('ai.replay.manager');
+        return $replayManager->replay($traceId);
     }
 }
 
